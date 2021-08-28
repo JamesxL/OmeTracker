@@ -139,7 +139,7 @@ def gps_pixel_plotter():
         
 
 #start the actual stuffs
-sense.show_message('Ome Tracker')
+sense.show_message('Ome Tracker',scroll_speed=0.05)
 #start the actual stuffs
 
 sense.clear(0, 0, 0)
@@ -149,7 +149,7 @@ GpsPlotThread = Thread(target=gps_pixel_plotter, daemon=True)
 GpsStateThread = Thread(target=gps_status_check, args=(sense, gps), daemon=True)
 GpsPlotThread.start()
 GpsStateThread.start()
-#gps.StartGpsLogging()
+gps.StartGpsLogging()
 
 
 
@@ -161,6 +161,8 @@ next_wp = wp[0]
 star_fin = wp[0]
 car_loc = []
 track_state = {}
+track_state.update(gps.gps_status)
+track_state.update({'segment': 0,'lap':0})
 indicator_timer = 0
 log_timer = 0
 _tmp_time = datetime.datetime.utcnow().strftime(
@@ -168,6 +170,7 @@ _tmp_time = datetime.datetime.utcnow().strftime(
 logfile = os.path.expanduser(f'~/workspace/logs/{_tmp_time}_pglog.txt')
 f=open(logfile, 'a')
 seg_index = 0
+lap= 0
 while True:
     if gps.GetNewGGA:
         gps.GetNewGGA = False
@@ -176,9 +179,13 @@ while True:
         if TrapALine(next_wp[0],next_wp[1],_car_loc):
             if next_wp == star_fin:
                 timer.NewSegment(_new_lap=True)
+                lap +=1
             else:
                 timer.NewSegment()
-            f.write(str(track_state))    
+            track_state.update({'segment': seg_index+1,'lap':lap})
+            seg_index += 1
+            
+            f.write(f'{str(track_state)}\n') 
             seg_index = seg_index + 1
             next_wp = wp[seg_index]
             sense.set_pixel(7, 7, [125,233,12])
@@ -190,7 +197,7 @@ while True:
     
     if time.clock_gettime(time.CLOCK_MONOTONIC_RAW) - log_timer >=0.05:
         log_timer = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
-        f.write(str(track_state))
+        f.write(f'{str(track_state)}\n')
         
     
     

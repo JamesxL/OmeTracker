@@ -34,8 +34,9 @@ To-do 2021/8/18
 '''
 
 
-from OmeGPS.gps_drv import ome_gps 
+from OmeGPS.gps_drv import ome_gps
 import time
+import serial
 
 #change this for your own port
 serial_port = '/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0'

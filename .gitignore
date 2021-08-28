@@ -4,6 +4,6 @@
 .vscode/launch.json
 !.vscode/extensions.json
 *.code-workspace
-
+OmeGPS/ubxToken.yml
 # Local History for Visual Studio Code
 .history/
