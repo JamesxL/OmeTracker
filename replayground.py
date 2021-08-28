@@ -14,7 +14,7 @@ a few run modes(top level states)
 from colorsys import hsv_to_rgb
 import time
 from sense_emu import SenseHat
-from OmeGPS.gps_drv import ome_gps
+from OmeGPS.gps_drv import GPSReplay
 from OmeTimer.OmeTimer import OmeTimer
 import time
 from threading import Thread
@@ -25,9 +25,10 @@ import os
 
 
 # change this for your own port
-serial_port = '/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0'
+logfile = os.path.expanduser(
+    f'~/workspace/logs/Ome1/2021-08-24_18-06-21-895_default_GPS.log')
+gps = GPSReplay(logfile)
 
-gps = ome_gps(serial_port)
 sense = SenseHat()
 timer = OmeTimer()
 
@@ -148,7 +149,7 @@ def gps_pixel_plotter():
 
 
 # start the actual stuffs
-sense.show_message('Ome Tracker', scroll_speed=0.05)
+#sense.show_message('Ome Tracker', scroll_speed=0.05)
 # start the actual stuffs
 
 sense.clear(0, 0, 0)
@@ -159,8 +160,6 @@ GpsStateThread = Thread(target=gps_status_check,
                         args=(sense, gps), daemon=True)
 GpsPlotThread.start()
 GpsStateThread.start()
-gps.StartGpsLogging()
-
 
 
 # 2 main run modes: accel and lap

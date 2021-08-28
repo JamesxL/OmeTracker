@@ -38,7 +38,7 @@ class ome_gps:
                            0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x1D, 0xAB])
 
     def __init__(self, serial_port, default_baud=9600):
-        self._status = {'timestamp': datetime.time(0, 0, 0), 'gps_ready': False, 'latitude': 0.0, 'longitude': 0.0,
+        self._status = {'GPStimestamp': datetime.time(0, 0, 0), 'gps_ready': False, 'latitude': 0.0, 'longitude': 0.0,
                         'altitude': 0.0, 'gps_qual': 0.0, 'mode_fix_type': 0, 'num_sats': 0, 'true_track': 0.0, 'groundspeed': 0.0}
         self.runName = ''
         self.logFolder = os.path.expanduser(
@@ -121,7 +121,7 @@ class ome_gps:
             PrintDebug(f"err{e}")
         self.runName = name
         _tmp_time = datetime.datetime.utcnow().strftime(
-            '%Y-%m-%d_%H-%M-%S-%f')[:-3]
+            '%Y-%m-%d_%H%M-%S-%f')[:-3]
         self.logPath = os.path.expanduser(
             f'~/workspace/logs/{_tmp_time}_{name}_GPS.log')
         self.logger = open(self.logPath, 'a')
@@ -136,7 +136,7 @@ class ome_gps:
                 self.ClassifyMsgs(_decoded)
                 if self.allowLogging:
                     _tmp_time = datetime.datetime.utcnow().strftime(
-                        '%Y-%m-%d_%H-%M-%S-%f')[:-3]
+                        '%Y-%m-%d %H:%M:%S.%f')[:-3]
                     self.logger.write(f'{_tmp_time}: {_decoded}\r\n')
 
             except Exception as e:
@@ -146,7 +146,7 @@ class ome_gps:
     def ClassifyMsgs(self, _incoming):
         _msg = pynmea2.parse(_incoming)
         if 'GNGGA' in _incoming:
-            self._status.update({'timestamp': _msg.timestamp, 'latitude': _msg.latitude,
+            self._status.update({'GPStimestamp': _msg.timestamp, 'latitude': _msg.latitude,
                                  'longitude': _msg.longitude, 'altitude': _msg.altitude, 'gps_qual': _msg.gps_qual, 'num_sats': _msg.num_sats})
             PrintDebug(repr(_msg))
             self.newGGA = True
@@ -270,3 +270,88 @@ class UBXMGA():
             self.GetNewMGA()
         self.TestMGADataValidity()
         self.UpdateGPS(ser)
+
+class GPSReplay():
+
+    def __init__(self, file):
+        self._status = {'GPStimestamp': datetime.time(0, 0, 0), 'gps_ready': False, 'latitude': 0.0, 'longitude': 0.0,
+                        'altitude': 0.0, 'gps_qual': 0.0, 'mode_fix_type': 0, 'num_sats': 0, 'true_track': 0.0, 'groundspeed': 0.0}
+        self.ser = open(file,'r')
+        self.newGGA = False
+        
+        self.gpsThread = Thread(target=self.ReadIncoming, daemon=True)
+        self.gpsThread.start()
+        PrintDebug('GPS Replay initialized', True)
+
+    @ property
+    def gps_status(self):
+        return self._status
+
+    # use NewGGA flag to drive line trap and timer event such that when a new GPS is available, run the checks immediately for best timing
+    @ property
+    def GetNewGGA(self):
+        return self.newGGA
+
+    @GetNewGGA.setter
+    def GetNewGGA(self, new_state):
+        self.newGGA = new_state
+
+    def StartGpsLogging(self):
+        pass
+
+    def StopGpsLogging(self):
+        pass
+
+
+    def ReadIncoming(self):
+        _count = 0
+        _baselogtimestamp = ''
+        _basenowtime = datetime.datetime.utcnow()
+        while True:
+            _incoming = ''
+            try:
+                _anewline = self.ser.readline()
+                _content = _anewline.split(': ')
+                
+                _timestamp = datetime.datetime.strptime(_content[0],'%Y-%m-%d_%H-%M-%S-%f')
+                _incoming = _content[1]
+                if _count == 0:
+                    _basetimestamp = _timestamp
+                    
+                while True:
+                    if datetime.datetime.utcnow() - _basenowtime >= (_timestamp - _basetimestamp)*0.1:
+                        break
+                    time.sleep(0.001)
+                
+                self._status.update({'gps_ready': _incoming != ''})
+                try:
+                    _decoded = _incoming#.decode('ascii', errors='strict').strip()
+                    self.ClassifyMsgs(_decoded)
+
+                except Exception as e:
+                    PrintDebug(
+                        f'read incoming err {e} with {_incoming}', True)
+                _count +=1
+            except Exception as e:
+                print(e)
+                break
+
+    def ClassifyMsgs(self, _incoming):
+        try:
+            _msg = pynmea2.parse(_incoming)
+            if 'GNGGA' in _incoming:
+                self._status.update({'GPStimestamp': _msg.timestamp, 'latitude': _msg.latitude,
+                                    'longitude':  _msg.longitude, 'altitude': _msg.altitude, 'gps_qual': _msg.gps_qual, 'num_sats': _msg.num_sats})
+                PrintDebug(repr(_msg))
+                self.newGGA = True
+            elif 'VTG' in _incoming:
+                self._status.update(
+                    {'true_track': _msg.true_track, 'groundspeed': _msg.spd_over_grnd_kmph})
+                PrintDebug(repr(_msg))
+            elif 'GSA' in _incoming:
+                self._status.update({'mode_fix_type': _msg.mode_fix_type, })
+                PrintDebug(repr(_msg))
+            else:
+                pass
+        except Exception as e:
+            print(e)
