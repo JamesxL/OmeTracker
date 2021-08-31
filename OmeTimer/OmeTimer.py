@@ -68,7 +68,8 @@ class OmeTimer():
 
 
 
-
+"""
 a = OmeTimer()
 run_amount = 1000000
 print(timeit.timeit(setup=a.ElapsedSegTime, number=run_amount)/run_amount)
+"""

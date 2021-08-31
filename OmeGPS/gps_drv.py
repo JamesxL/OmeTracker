@@ -45,8 +45,6 @@ class ome_gps:
             f'~/workspace/logs/')
         # logging related
         # create a default log file/path
-        _tmp_time = datetime.datetime.utcnow().strftime(
-            '%Y-%m-%d_%H-%M-%S-%f')[:-3]
 
         self.logger = ''
         self.allowLogging = False
@@ -121,7 +119,7 @@ class ome_gps:
             PrintDebug(f"err{e}")
         self.runName = name
         _tmp_time = datetime.datetime.utcnow().strftime(
-            '%Y-%m-%d_%H%M-%S-%f')[:-3]
+            '%Y-%m-%d_%H-%M-%S-%f')[:-3]
         self.logPath = os.path.expanduser(
             f'~/workspace/logs/{_tmp_time}_{name}_GPS.log')
         self.logger = open(self.logPath, 'a')
@@ -319,7 +317,7 @@ class GPSReplay():
                     _basetimestamp = _timestamp
                     
                 while True:
-                    if datetime.datetime.utcnow() - _basenowtime >= (_timestamp - _basetimestamp)*0.1:
+                    if datetime.datetime.utcnow() - _basenowtime >= (_timestamp - _basetimestamp):
                         break
                     time.sleep(0.001)
                 

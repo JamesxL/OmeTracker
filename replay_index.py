@@ -14,7 +14,7 @@ a few run modes(top level states)
 from colorsys import hsv_to_rgb
 import time
 from sense_emu import SenseHat
-from OmeGPS.gps_drv import ome_gps
+from OmeGPS.gps_drv import GPSReplay
 from OmeTimer.OmeTimer import OmeTimer
 import time
 from threading import Thread
@@ -24,16 +24,19 @@ import datetime
 import os
 
 
-# change this for your own port
-serial_port = '/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0'
+fins = {'thunderhill': [[39.53847936058279, -122.33131151667172],
+                        [39.538475881773856, -122.33108371523255]]}
 
-gps = ome_gps(serial_port)
+# change this for your own port
+logfile = os.path.expanduser(
+    f'~/workspace/logs/Ome1/2021-08-24_18-06-21-895_default_GPS.log')
+gps = GPSReplay(logfile)
+
 sense = SenseHat()
+timer = OmeTimer()
 sense.set_imu_config(True,True,True)
 sense.set_rotation(270)
 print(sense.get_accelerometer_raw())
-
-timer = OmeTimer()
 
 
 fix_state = 0
@@ -164,7 +167,6 @@ def prim_imu():
             imu_ready = True
         time.sleep(0.005)
             
-            
         
 
 # start the actual stuffs
@@ -177,11 +179,10 @@ time.sleep(1)
 GpsPlotThread = Thread(target=gps_pixel_plotter, daemon=True)
 GpsStateThread = Thread(target=gps_status_check,
                         args=(sense, gps), daemon=True)
-IMUThread = Thread(target=imu_ready, daemon=True)
+IMUThread = Thread(target=prim_imu, daemon=True)
+IMUThread.start()
 GpsPlotThread.start()
 GpsStateThread.start()
-IMUThread.start()
-gps.StartGpsLogging()
 
 
 # 2 main run modes: accel and lap
@@ -189,7 +190,7 @@ gps.StartGpsLogging()
 # lap mode is close circuit vs non close circuit
 wp = [[[37.386551, -121.976507], [37.385315, -121.977011]], [[37.391480, -121.996019], [37.390993, -121.996053]], [[37.395856281151175, -122.01278184373095], [37.39557472782622, -122.01284438417055]], [[37.399191243521486, -122.0277364354773], [37.398766491778865, -122.02783723303757]], [[37.40784592640769, -122.0662768452659], [37.40749509288447, -122.06643479362538]], [[37.421219133570546, -122.09238105202712], [37.42081028170965, -122.09258279891876]], [[37.44711013467561, -122.12067538620087], [37.446821132971266, -122.12120173984503]], [[37.469178298696264, -
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      122.1551627962261], [37.46874101933634, -122.15532021040003]], [[37.483537350142505, -122.18055454055384], [37.48322820661036, -122.18088150965406]], [[37.49228548293154, -122.22053122641603], [37.49196543121171, -122.22080670122045]], [[37.496489006227065, -122.23302884687149], [37.49621380681995, -122.23317391434453]], [[37.51415285182584, -122.25601270180371], [37.513823668212154, -122.25627433514738]], [[37.526430908306715, -122.26995379736208], [37.52616713677875, -122.27034003544544]], [[37.544776640040304, -122.28772475047946], [37.54444487991503, -122.28825046342624]]]
-#print(f'wp count {len(wp)}')
+print(f'wp count {len(wp)}')
 start = wp[0]
 fin = wp[len(wp)-1]
 car_loc = []
@@ -202,22 +203,21 @@ log_timer = 0
 _tmp_time = datetime.datetime.utcnow().strftime(
     '%Y-%m-%d_%H-%M-%S-%f')[:-3]
 logfile = os.path.expanduser(f'~/workspace/logs/{_tmp_time}_pglog.txt')
-# print(logfile)
+print(logfile)
 f = open(logfile, 'a')
 seg_index = 0
 next_wp = wp[seg_index]
 lap = 0
-
-record_keeper = []
 isclosedcircuit = False
 timer.StartTimer()
+_startt = datetime.datetime.utcnow()
 while True:
     if gps.GetNewGGA:
         gps.GetNewGGA = False
         track_state.update(gps.gps_status)
         _car_loc = [track_state.get('latitude'), track_state.get('longitude')]
         if TrapALine(next_wp[0], next_wp[1], _car_loc):
-            # print(seg_index)
+            print(seg_index)
             _glo_time = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
             if seg_index in [0, len(wp)]:
                 # next wp is start point
@@ -226,8 +226,9 @@ while True:
                 track_state.update({'global_time': _glo_time, 'lap': lap, 'segment': seg_index,
                                     'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time})
                 lap += 1
-                seg_index = 1
-                #print(f'cross start{track_state}')
+                seg_index += 1
+                print(f'cross start{track_state}')
+                
 
             else:
                 timer.NewSegment()
@@ -250,12 +251,12 @@ while True:
             track_state.update({'accel_x':_xel[0], 'accel_y':_xel[1],'accel_z':_xel[2]})
             #next_wp = wp[seg_index]
             f.write(f'{str(track_state)}\n')
-            f.flush()
             log_timer = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
+            f.flush()
             sense.set_pixel(7, 7, [125, 233, 12])
             indicator_timer = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
 
-    if time.clock_gettime(time.CLOCK_MONOTONIC_RAW) - indicator_timer > 10:
+    if time.clock_gettime(time.CLOCK_MONOTONIC_RAW) - indicator_timer > 1:
         sense.set_pixel(7, 7, [5, 5, 5])
         indicator_timer = 0
 
@@ -268,4 +269,7 @@ while True:
         log_timer = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
         f.write(f'{str(track_state)}\n')
 
-    time.sleep(0.01)
+    time.sleep(0.001)
+
+    if (datetime.datetime.utcnow() - _startt  > datetime.timedelta(seconds=3600)):
+        break
