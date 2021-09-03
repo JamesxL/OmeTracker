@@ -11,7 +11,7 @@
 from PySide6.QtCore import *  # type: ignore
 from PySide6.QtGui import *  # type: ignore
 from PySide6.QtWidgets import *  # type: ignore
-import sys
+
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -34,10 +34,12 @@ class Ui_MainWindow(object):
         self.LapTime.setAlignment(Qt.AlignCenter)
         self.LapRecord = QListView(self.centralwidget)
         self.LapRecord.setObjectName(u"LapRecord")
+        self.LapRecord.setEnabled(True)
         self.LapRecord.setGeometry(QRect(9, 8, 421, 681))
         font1 = QFont()
         font1.setPointSize(35)
         self.LapRecord.setFont(font1)
+        self.LapRecord.setFocusPolicy(Qt.NoFocus)
         self.LapRecord.setStyleSheet(u"background-color: rgb(255, 255, 255);")
         self.GPSStatus = QLabel(self.centralwidget)
         self.GPSStatus.setObjectName(u"GPSStatus")
@@ -87,3 +89,4 @@ class Ui_MainWindow(object):
         self.StopTimer.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
         self.Logger_2.setText(QCoreApplication.translate("MainWindow", u"Logging", None))
     # retranslateUi
+

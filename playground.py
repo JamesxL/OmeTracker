@@ -30,7 +30,7 @@ serial_port = '/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0'
 gps = ome_gps(serial_port)
 sense = SenseHat()
 sense.set_imu_config(True,True,True)
-sense.set_rotation(270)
+sense.set_rotation(90)
 print(sense.get_accelerometer_raw())
 
 timer = OmeTimer()

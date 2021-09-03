@@ -7,6 +7,8 @@ import datetime
 import os
 import sys
 import yaml
+import asyncio
+
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -93,6 +95,13 @@ class ome_gps:
     @ property
     def gps_status(self):
         return self._status
+    
+    async def async_gps_status(self):
+        while ~self.newGGA:
+            await asyncio.sleep(0.01)
+        return self._status
+            
+            
 
     # use NewGGA flag to drive line trap and timer event such that when a new GPS is available, run the checks immediately for best timing
     @ property
@@ -302,6 +311,7 @@ class GPSReplay():
 
 
     def ReadIncoming(self):
+        #this is to replay log file
         _count = 0
         _baselogtimestamp = ''
         _basenowtime = datetime.datetime.utcnow()
