@@ -55,14 +55,13 @@ class ome_gps:
         self.MGA = UBXMGA()
 
         # configure GPS
-        while True:
 
-            try:
-                self.ser = serial.Serial(serial_port, default_baud, timeout=1)
-                break
-            except Exception as e:
-                PrintDebug(f'{e}', True)
-            time.sleep(0.5)
+        #need a better way to handle GPS init failure. maybe always let it happen and finish, but only set a success flag to allow retry
+        try:
+            self.ser = serial.Serial(serial_port, default_baud, timeout=1)
+            
+        except Exception as e:
+            PrintDebug(f'{e}', True)
 
         time.sleep(0.5)
         self.ser.write(self.serialset)

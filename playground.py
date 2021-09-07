@@ -22,14 +22,14 @@ import numpy as np
 import json
 import datetime
 import os
-
+import csv
 
 # change this for your own port
 serial_port = '/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0'
 
 gps = ome_gps(serial_port)
 sense = SenseHat()
-sense.set_imu_config(True,True,True)
+sense.set_imu_config(True, True, True)
 sense.set_rotation(90)
 print(sense.get_accelerometer_raw())
 
@@ -78,17 +78,17 @@ def TrapALine(coordFin1, coordFin2, coordCar):
                     coordCar[1] - coordFin2[1]]
     _fin_car_dist = np.linalg.norm(_fin_car_vec)
     _fin_car_od = np.cross(_fin_fin_vec, _fin_car_vec)/_fin_len
-
+    trapped = False
     if abs(_fin_car_dist) < abs(_fin_len):
         TrapALine.new_state = _fin_car_od/abs(_fin_car_od)
         if TrapALine.last_state + TrapALine.new_state == 0:
             #('cross the line')
-            return True
+            trapped = True
         TrapALine.last_state = TrapALine.new_state
     else:
         TrapALine.last_state = 0
     #print(_fin_len, _fin_car_dist, _fin_car_od, TrapALine.new_state, TrapALine.last_state)
-    return False
+    return trapped
 
 
 TrapALine.new_state = 0
@@ -150,22 +150,23 @@ def gps_pixel_plotter():
         for i in range(len(glo_gps_loc)):
             sense.set_pixel(glo_gps_loc[i][0], glo_gps_loc[i][1], [0, 0, 0])
 
+
 imu_ready = False
+
+
 def prim_imu():
-    #the sensor read time is ~20ms per run, to run it at 33ms cycle 
+    # the sensor read time is ~20ms per run, to run it at 33ms cycle
     global imu_ready
     _lasttime = 0
     while True:
-        
+
         if time.clock_gettime(time.CLOCK_MONOTONIC_RAW) - _lasttime > 0.03:
             while not sense._imu.IMURead():
                 time.sleep(0.005)
             _lasttime = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
             imu_ready = True
         time.sleep(0.005)
-            
-            
-        
+
 
 # start the actual stuffs
 sense.show_message('Ome Tracker', scroll_speed=0.05)
@@ -177,7 +178,7 @@ time.sleep(1)
 GpsPlotThread = Thread(target=gps_pixel_plotter, daemon=True)
 GpsStateThread = Thread(target=gps_status_check,
                         args=(sense, gps), daemon=True)
-IMUThread = Thread(target=imu_ready, daemon=True)
+IMUThread = Thread(target=prim_imu, daemon=True)
 GpsPlotThread.start()
 GpsStateThread.start()
 IMUThread.start()
@@ -193,17 +194,21 @@ wp = [[[37.386551, -121.976507], [37.385315, -121.977011]], [[37.391480, -121.99
 start = wp[0]
 fin = wp[len(wp)-1]
 car_loc = []
-track_state = {}
-track_state.update({'global_time': 0, 'lap': 0, 'segment': 0,
-                   'lap_time': 0, 'segment_time': 0})
+track_state = dict(
+    global_time=None, lap=None, segment=None, lap_time=None, segment_time=None, GPStimestamp=None, gps_ready=None, latitude=None, longitude=None, altitude=None, gps_qual=None, mode_fix_type=None, num_sats=None, true_track=None, groundspeed=None, accel_x=None, accel_y=None, accel_z=None
+)
 track_state.update(gps.gps_status)
 indicator_timer = 0
 log_timer = 0
 _tmp_time = datetime.datetime.utcnow().strftime(
     '%Y-%m-%d_%H-%M-%S-%f')[:-3]
-logfile = os.path.expanduser(f'~/workspace/logs/{_tmp_time}_pglog.txt')
+logfile = os.path.expanduser(f'~/workspace/logs/{_tmp_time}_pglog.csv')
 # print(logfile)
-f = open(logfile, 'a')
+m = open(logfile, 'w')
+f = csv.DictWriter(m,fieldnames=list(track_state.keys()))
+f.writeheader()
+
+
 seg_index = 0
 next_wp = wp[seg_index]
 lap = 0
@@ -246,11 +251,12 @@ while True:
                     next_wp = wp[seg_index]
             else:
                 next_wp = wp[seg_index]
-            _xel = sense._imu.getIMUData()['accel'] 
-            track_state.update({'accel_x':_xel[0], 'accel_y':_xel[1],'accel_z':_xel[2]})
+            _xel = sense._imu.getIMUData()['accel']
+            track_state.update(
+                {'accel_x': -_xel[0], 'accel_y': -_xel[1], 'accel_z': _xel[2]})
             #next_wp = wp[seg_index]
-            f.write(f'{str(track_state)}\n')
-            f.flush()
+            f.writerow(track_state)
+            m.flush()
             log_timer = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
             sense.set_pixel(7, 7, [125, 233, 12])
             indicator_timer = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
@@ -262,10 +268,10 @@ while True:
     if time.clock_gettime(time.CLOCK_MONOTONIC_RAW) - log_timer >= 0.05:
         _current_elap_seg_time, _current_elap_lap_time = timer.ElapsedSegTime()
         _glo_time = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
-        _xel = sense._imu.getIMUData()['accel']    
+        _xel = sense._imu.getIMUData()['accel']
         track_state.update({'global_time': _glo_time, 'lap': lap, 'segment': seg_index,
-                            'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time, 'accel_x':_xel[0], 'accel_y':_xel[1],'accel_z':_xel[2]})
+                            'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time, 'accel_x': -_xel[0], 'accel_y': -_xel[1], 'accel_z': _xel[2]})
         log_timer = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
-        f.write(f'{str(track_state)}\n')
+        f.writerow(track_state)
 
     time.sleep(0.01)

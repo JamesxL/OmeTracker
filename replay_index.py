@@ -34,7 +34,7 @@ gps = GPSReplay(logfile)
 
 sense = SenseHat()
 timer = OmeTimer()
-sense.set_imu_config(True,True,True)
+sense.set_imu_config(True, True, True)
 sense.set_rotation(270)
 print(sense.get_accelerometer_raw())
 
@@ -153,21 +153,23 @@ def gps_pixel_plotter():
         for i in range(len(glo_gps_loc)):
             sense.set_pixel(glo_gps_loc[i][0], glo_gps_loc[i][1], [0, 0, 0])
 
+
 imu_ready = False
+
+
 def prim_imu():
-    #the sensor read time is ~20ms per run, to run it at 33ms cycle 
+    # the sensor read time is ~20ms per run, to run it at 33ms cycle
     global imu_ready
     _lasttime = 0
     while True:
-        
+
         if time.clock_gettime(time.CLOCK_MONOTONIC_RAW) - _lasttime > 0.03:
             while not sense._imu.IMURead():
                 time.sleep(0.005)
             _lasttime = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
             imu_ready = True
         time.sleep(0.005)
-            
-        
+
 
 # start the actual stuffs
 sense.show_message('Ome Tracker', scroll_speed=0.05)
@@ -228,7 +230,6 @@ while True:
                 lap += 1
                 seg_index += 1
                 print(f'cross start{track_state}')
-                
 
             else:
                 timer.NewSegment()
@@ -247,8 +248,9 @@ while True:
                     next_wp = wp[seg_index]
             else:
                 next_wp = wp[seg_index]
-            _xel = sense._imu.getIMUData()['accel'] 
-            track_state.update({'accel_x':_xel[0], 'accel_y':_xel[1],'accel_z':_xel[2]})
+            _xel = sense._imu.getIMUData()['accel']
+            track_state.update(
+                {'accel_x': _xel[0], 'accel_y': _xel[1], 'accel_z': _xel[2]})
             #next_wp = wp[seg_index]
             f.write(f'{str(track_state)}\n')
             log_timer = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
@@ -263,13 +265,13 @@ while True:
     if time.clock_gettime(time.CLOCK_MONOTONIC_RAW) - log_timer >= 0.05:
         _current_elap_seg_time, _current_elap_lap_time = timer.ElapsedSegTime()
         _glo_time = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
-        _xel = sense._imu.getIMUData()['accel']    
+        _xel = sense._imu.getIMUData()['accel']
         track_state.update({'global_time': _glo_time, 'lap': lap, 'segment': seg_index,
-                            'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time, 'accel_x':_xel[0], 'accel_y':_xel[1],'accel_z':_xel[2]})
+                            'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time, 'accel_x': _xel[0], 'accel_y': _xel[1], 'accel_z': _xel[2]})
         log_timer = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
         f.write(f'{str(track_state)}\n')
 
     time.sleep(0.001)
 
-    if (datetime.datetime.utcnow() - _startt  > datetime.timedelta(seconds=3600)):
+    if (datetime.datetime.utcnow() - _startt > datetime.timedelta(seconds=3600)):
         break

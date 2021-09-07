@@ -1,0 +1,3 @@
+[submodule "dbc"]
+	path = dbc
+	url = https://github.com/dzid26/opendbc-BMW-E8x-E9x.git
