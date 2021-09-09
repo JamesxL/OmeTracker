@@ -80,20 +80,6 @@
       <property name="textElideMode">
        <enum>Qt::ElideMiddle</enum>
       </property>
-      <item>
-       <property name="text">
-        <string>0:04:10.123</string>
-       </property>
-       <property name="background">
-        <brush brushstyle="SolidPattern">
-         <color alpha="80">
-          <red>0</red>
-          <green>255</green>
-          <blue>0</blue>
-         </color>
-        </brush>
-       </property>
-      </item>
      </widget>
     </item>
     <item row="0" column="7">
@@ -149,6 +135,9 @@ background-color: rgb(171, 183, 183);</string>
         <pointsize>16</pointsize>
        </font>
       </property>
+      <property name="focusPolicy">
+       <enum>Qt::NoFocus</enum>
+      </property>
       <property name="styleSheet">
        <string notr="true">alternate-background-color: rgb(114, 159, 207);</string>
       </property>
@@ -172,6 +161,9 @@ background-color: rgb(171, 183, 183);</string>
        <font>
         <pointsize>16</pointsize>
        </font>
+      </property>
+      <property name="focusPolicy">
+       <enum>Qt::NoFocus</enum>
       </property>
       <property name="styleSheet">
        <string notr="true">alternate-background-color: rgb(114, 159, 207);</string>
@@ -257,6 +249,9 @@ background-color: rgb(171, 183, 183);</string>
        <font>
         <pointsize>16</pointsize>
        </font>
+      </property>
+      <property name="focusPolicy">
+       <enum>Qt::NoFocus</enum>
       </property>
       <property name="styleSheet">
        <string notr="true">alternate-background-color: rgb(114, 159, 207);</string>

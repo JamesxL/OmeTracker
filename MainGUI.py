@@ -3,10 +3,8 @@ from PySide2.QtGui import *  # type: ignore
 from PySide2.QtWidgets import *  # type: ignore
 import sys
 import os
-from OmeTimer.OmeTimer import OmeTimer
-from sense_emu import SenseHat
-from OmeGPS.OmeGPS import OmeGPS
-from OmeCAN.OmeCAN import OmeCAN
+from OmeTracker import OmeTracker
+
 
 import numpy as np
 import datetime
@@ -25,27 +23,33 @@ class MainWindow(QMainWindow, MainGUI):
         self.setupUi(self)
 
         self.system = os.uname().nodename
-        self.LapTimer = OmeTimer()
-
-        
+        self.Tracker = OmeTracker()
 
         # set up subwindows/popups
         self.ConfigWindow = ConfigWindow()
-        # placeholder for GPS
-        # placeholder for Logger
-        # placeholder for CAN
-        self.stffs = Lapper()
-
 
         # set up bottons
-        self.StopTimerBtn.clicked.connect(self.StopTimerFx)
-        self.StartTimerBtn.clicked.connect(self.StartTimerFx)
+        self.StartTimerBtn.clicked.connect(self.StartTiming)
+        self.StopTimerBtn.clicked.connect(self.StopTiming)
         self.ConfigBtn.clicked.connect(self.OpenConfig)
 
+        self.ClockUpdater = QTimer(self)
+        self.ClockUpdater.timeout.connect(self.UpdateClock)
+        self.ClockUpdater.setInterval(20)
+        self.ClockUpdater.start()
 
-        self.LapTimeUpdatTimer = QTimer(self)
-        self.LapTimeUpdatTimer.timeout.connect(self.getLaptime)
-        self.LapTimeUpdatTimer.setInterval(10)
+        self.SensorUpdater = QTimer(self)
+        self.SensorUpdater.timeout.connect(self.UpdateSensor)
+        self.SensorUpdater.start(100)
+
+        self.RunMode = 'circuit'
+        self.ModeRunner = QTimer(self)
+        self.ModeRunner.setInterval(10)
+        self.ConfigureRunMode()
+
+        self.Tracker.start_sys_logging()
+
+        self.StartTiming()
 
 
         if self.system == 'raspberrypi':
@@ -53,38 +57,94 @@ class MainWindow(QMainWindow, MainGUI):
         else:
             self.show()
 
+        # self.StartTiming()
+
         # self.showMaximized()
         # self.showFullScreen()
 
-    def add_LapRecord(self, value):
-        self.LapRecordList.sortItems(order=Qt.AscendingOrder)
-        self.LapRecordList.insertItem(0, value)
-        # time.sleep(1)
+    def StartTiming(self):
+        self.Tracker.O_Timer.start_timer()
+        self.ModeRunner.start()
 
-    def getLaptime(self):
-        _current_elap_seg_time, _current_elap_lap_time = self.LapTimer.elapsed_seg_time()
-        _formatted_time = str(datetime.timedelta(
-            seconds=_current_elap_lap_time))[:-3]
-        self.LapTimeLbl.setText(_formatted_time)
+    def StopTiming(self):
+        self.Tracker.O_Timer.stop_timer()
+        self.ModeRunner.stop()
 
-    def StartTimerFx(self):
-        if not self.LapTimeUpdatTimer.isActive():
-            self.LapTimeUpdatTimer.start()
-            self.LapTimer.start_timer()
+    def ConfigureRunMode(self, mode='circuit'):
+        if mode == 'circuit':
+            self.ModeRunner.timeout.connect(self.Tracker.lapping_mode)
+            pass
 
-    def StopTimerFx(self):
-        self.LapTimer.reset()
-        self.LapTimeUpdatTimer.stop()
+
+    def UpdateClock(self):
+        _lap_time,_,_,_last_lap_time = self.Tracker.O_Timer.get_all_times()
+        if _lap_time != 0:
+            _formatted_time1 = str(datetime.timedelta(
+                seconds=_lap_time))[:-3]
+        else:
+            _formatted_time1 = '0:00:00.000'
+        self.LapTimeLbl.setText(_formatted_time1)
+        if self.Tracker.O_Timer.is_new_lap:
+            _formatted_time2 = str(datetime.timedelta(
+                seconds=_last_lap_time))[:-3]
+            self.LapRecordList.insertItem(0, _formatted_time2)
+
+
+    def UpdateGPSBtn(self, style=(255, 255, 255), text='GPS'):
+        self.GPSStatusBtn.setStyleSheet(style)
+        self.GPSStatusBtn.setText(text)
+
+    def UpdateCANBtn(self, style=(255, 255, 255), text='CAN'):
+        self.CANStatusBtn.setStyleSheet(style)
+        self.CANStatusBtn.setText(text)
+
+    def UpdateLogBtn(self, style=u"background-color: rgb(255, 255, 255);", text='Log'):
+        self.LoggerStatusBtn.setStyleSheet(style)
+        self.LoggerStatusBtn.setText(text)
+
+    def UpdateSensor(self):
+        _status = self.Tracker.get_sensor_status()
+        if not _status['GPS_connected']:
+            self.UpdateGPSBtn(u"background-color: rgb(100, 0, 0);", "NO GPS")
+        else:
+            if not _status['GPS_ready']:
+                self.UpdateGPSBtn(
+                    u"background-color: rgb(180, 0, 0);", "NO GGA")
+            else:
+                if (_status['GPS_mode'] == 0) | (_status['GPS_fix_quality'] == 0):
+                    self.UpdateGPSBtn(
+                        u"background-color: rgb(255, 255, 0);", "NO FIX")
+                else:
+                    GPS_fix_modes = {2: '2D', 3: '3D'}
+                    GPS_fix_qual = {1: '', 2: 'DGPS'}
+                    _txt = GPS_fix_modes.get(_status['GPS_mode']) + GPS_fix_qual.get(
+                        _status['GPS_fix_quality'])+f":{_status['GPS_sat_count']}"
+                    self.UpdateGPSBtn(
+                        u"background-color: rgb(0, 255, 0);", _txt)
+
+        if not _status['CAN_connected']:
+            self.UpdateCANBtn(u"background-color: rgb(100, 0, 0);", "NO CAN")
+        else:
+            if not _status['CAN_ready']:
+                self.UpdateGPSBtn(
+                    u"background-color: rgb(180, 0, 0);", "NO COMM")
+            else:
+                self.UpdateGPSBtn(
+                    u"background-color: rgb(0, 255, 0);", "CAN OK")
+        if (_status['Tracker_logging']):
+            self.UpdateLogBtn(u"background-color: rgb(0, 255, 0);")
+        else:
+            self.UpdateLogBtn()
 
     def OpenConfig(self):
         self.ConfigWindow.show()
 
     def ExitProg(self):
+        self.Tracker.stop_sys_logging()
         app.exit()
 
 
 class ConfigWindow(QMainWindow, ConfigGUI):
-
 
     def __init__(self):
         super().__init__()
@@ -98,34 +158,6 @@ class ConfigWindow(QMainWindow, ConfigGUI):
 
     def ExitProg(self):
         app.exit()
-
-class Lapper:
-    color_red = (0xff, 0x00, 0x00)
-    color_amber = (0xff, 0xBF, 0x00)
-    color_yellow = (0xff, 0xff, 0x00)
-    color_orange = (0xff, 0xA5, 0x00)
-    color_gold = (0xff, 0xd7, 0x00)
-    color_blue = (0, 0, 0xff)
-    color_green = (0x00, 0xff, 0x00)
-    color_white = (0xff, 0xff, 0xff)
-
-    glo_gps_interval = 0.5
-    glo_gps_loc = [[0, 0], [1, 0], [2, 0], [0, 1],
-                [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]]
-    glo_gps_clr = [[0x88, 0x88, 0x88]]*len(glo_gps_loc)
-
-
-    GPS_port = '/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0'
-
-    def __init__(self) -> None:
-        # init peripherals
-        self.LapTimer = OmeTimer()
-        self.GPS = OmeGPS(self.GPS_port)
-        self.CAN = OmeCAN()
-        self.SenseHAT = SenseHat()
-
-
-
 
 
 app = QApplication(sys.argv)

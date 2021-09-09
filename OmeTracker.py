@@ -60,6 +60,11 @@ class OmeTracker:
         self.O_CAN = OmeCAN(canport=CANPORT)
         self.track_db = TRACKDB
 
+        # setup sensor hat
+        self.O_SenseHat.set_imu_config(True, True, True)
+        self.O_SenseHat.get_accelerometer_raw()
+        self.O_SenseHat.set_rotation(90)
+
         # variables for finish line trap
         self.finish_line_coords = None  # both coords here
         self.car_coord = None
@@ -67,7 +72,7 @@ class OmeTracker:
         self.finish_line_last_state = 0
 
         self.tracker_status = dict(
-            global_time=None, lap=None, segment=None, lap_time=None, segment_time=None, GPStimestamp=None, gps_ready=None, latitude=None, longitude=None, altitude=None, gps_qual=None, mode_fix_type=None, num_sats=None, true_track=None, groundspeed=None, accel_x=None, accel_y=None, accel_z=None
+            global_time=None, run_mode='circuit', lap=None, segment=None, lap_time=None, segment_time=None, GPStimestamp=None, latitude=None, longitude=None, altitude=None, gps_qual=None, mode_fix_type=None, num_sats=None, true_track=None, groundspeed=None, accel_x=None, accel_y=None, accel_z=None
         )  # need to init this for logging
 
         # lapping mode related
@@ -83,26 +88,84 @@ class OmeTracker:
         self.imu_updater = threading.Thread(
             target=self.imu_handling, daemon=True)
         self.imu_updater.start()
-        
 
         # logger related stuffs
         self.last_log_update_time = 0
         self.log_file = None
         self.logger = None
-        self.start_new_log()
+        self.allow_logging = False
 
-        
+        # sensor status
+        self.status_5hz = dict(
+            GPS_connected=False,
+            GPS_ready=False,
+            GPS_logging=False,
+            GPS_mode=None,
+            GPS_sat_count=None,
+            GPS_fix_quality=None,
+            CAN_connected=False,
+            CAN_ready=False,
+            Tracker_logging=False,
+        )
+        self.status_5hz_updater = threading.Thread(
+            target=self.update_status_5hz, daemon=True)
+        self.status_5hz_updater.start()
+        self.auto_log_thread = threading.Thread(
+            target=self.auto_log, daemon=True)
+        self.auto_log_thread.start()
+        # self.start_new_log()
 
-    def start_new_log(self):
+    
+
+    def start_sys_logging(self, runName='default'):
+        self.O_GPS.set_new_log(runName)
+        self.O_CAN.set_new_log(runName)
+        self.set_new_log(runName)
+        self.O_GPS.start_GPS_logging()
+        self.O_CAN.start_CAN_log()
+        self.allow_logging = True
+
+    def stop_sys_logging(self):
+        self.allow_logging = False
+        self.O_GPS.stop_GPS_logging()
+        self.O_CAN.stop_CAN_logging()
+        self.stop_logging()
+
+    def set_new_log(self, runName='default'):
         _tmp_time = datetime.datetime.utcnow().strftime(
             '%Y-%m-%d_%H-%M-%S-%f')[:-3]
         _log_file_path = os.path.expanduser(
-            f'~/workspace/logs/{_tmp_time}_mainlog.csv')
+            f'~/workspace/logs/{_tmp_time}_{runName}_mainlog.csv')
         self.last_log_update_time = 0
         self.log_file = open(_log_file_path, 'w')
         self.logger = csv.DictWriter(
             self.log_file, fieldnames=list(self.tracker_status.keys()))
         self.logger.writeheader()
+
+    def stop_logging(self):
+        self.allow_logging = False
+        if not self.log_file.closed:
+            self.log_file.flush()
+            self.log_file.close()
+
+    def update_status_5hz(self):
+        while True:
+            _status = dict(
+                GPS_connected=self.O_GPS.GPS_connected,
+                GPS_ready=self.O_GPS.GPS_ready,
+                GPS_logging=self.O_GPS.allow_logging,
+                GPS_mode=self.O_GPS.GPS_status['mode_fix_type'],
+                GPS_sat_count=self.O_GPS.GPS_status['num_sats'],
+                GPS_fix_quality=self.O_GPS.GPS_status['gps_qual'],
+                CAN_connected=self.O_CAN.CAN_connected,
+                CAN_ready=self.O_CAN.CAN_ready,
+                Tracker_logging=self.allow_logging
+            )
+            self.status_5hz.update(_status)
+            time.sleep(0.2)
+
+    def get_sensor_status(self):
+        return self.status_5hz
 
     def imu_handling(self):
         # run this in thread
@@ -115,12 +178,14 @@ class OmeTracker:
                 self.imu_ready = True
             time.sleep(0.005)
 
-
     def load_waypoints(self, waypoints, start_fin_point):
         self.start_finish_line = start_fin_point
         self.wp = waypoints
 
-    def load_finish_line(self):
+    def load_a_track(self, star_fin, waypoints):
+        self.start_finish_line = star_fin
+        self.wp = waypoints
+        self.next_wp = star_fin
         pass
 
     def trap_a_line(self, a_line, car):
@@ -143,18 +208,6 @@ class OmeTracker:
         #print(_fin_len, _fin_car_dist, _fin_car_od, TrapALine.new_state, TrapALine.last_state)
         return trapped
 
-    def start(self):
-        self.O_Timer.start_timer()
-        self.O_GPS.set_new_log()
-        self.O_GPS.start_new_log()
-        self.O_CAN.set_new_log()
-        self.O_CAN.start_new_log()
-
-    def stop(self):
-        self.O_Timer.reset()
-        self.O_GPS.stop_GPS_logging()
-        self.O_CAN.stop_new_log()
-
     def lapping_mode(self):
         # the lap mode checks if car crosses finish line by constantly monitoring GPS status. it needs to be called in a while loop at certain interval
         # when driving .lapping mode runs indefinitely so it will trip properly
@@ -167,14 +220,14 @@ class OmeTracker:
                 _glo_time = GLOTIME()
                 if self.segment_index in [0, len(self.wp)]:
                     self.O_Timer.new_segment(_new_lap=True)
-                    _current_elap_lap_time, _current_elap_seg_time = self.O_Timer.get_all_times()
+                    _current_elap_lap_time, _current_elap_seg_time, _, _ = self.O_Timer.get_all_times()
                     self.tracker_status.update({'global_time': _glo_time, 'lap': self.lap_count, 'segment': self.segment_index,
                                                 'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time})
                     self.lap_count += 1
                     self.segment_index = 1
                 else:
                     self.O_Timer.new_segment()
-                    _current_elap_lap_time, _current_elap_seg_time = self.O_Timer.get_all_times()
+                    _current_elap_lap_time, _current_elap_seg_time, _, _ = self.O_Timer.get_all_times()
                     self.tracker_status.update({'global_time': _glo_time, 'lap': self.lap_count, 'segment': self.segment_index,
                                                 'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time})
                     self.segment_index += 1
@@ -191,21 +244,26 @@ class OmeTracker:
             _xel = self.O_SenseHat._imu.getIMUData()['accel']
             self.tracker_status.update(
                 {'accel_x': -_xel[0], 'accel_y': -_xel[1], 'accel_z': _xel[2]})
-            self.logger.writerow(self.tracker_status)
-            self.log_file.flush
-            self.last_log_update_time = GLOTIME()
+            if self.allow_logging:
+                self.logger.writerow(self.tracker_status)
+                self.log_file.flush
+                self.last_log_update_time = GLOTIME()
+
 
     def drag_mode(self):
         pass
 
     def auto_log(self):
         # always run at 20hz as soon as logging starts. this helps to keep records
-        _glo_time = GLOTIME()
-        if _glo_time - self.last_log_update_time > 0.05:
-            _current_elap_seg_time, _current_elap_lap_time = self.O_Timer.elapsed_seg_time()
+        while True:
+            _glo_time = GLOTIME()
+            _current_elap_lap_time, _current_elap_seg_time, _, _ = self.O_Timer.get_all_times()
             _xel = self.O_SenseHat._imu.getIMUData()['accel']
             self.tracker_status.update(self.O_GPS.gps_status)
             self.tracker_status.update({'global_time': _glo_time, 'lap': self.lap_count, 'segment': self.segment_index,
                                         'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time, 'accel_x': -_xel[0], 'accel_y': -_xel[1], 'accel_z': _xel[2]})
-            self.last_log_update_time = _glo_time
-            self.logger.writerow(self.tracker_status)
+
+            if (_glo_time - self.last_log_update_time > 0.05) & self.allow_logging:
+                self.last_log_update_time = _glo_time
+                self.logger.writerow(self.tracker_status)
+            time.sleep(0.01)

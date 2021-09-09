@@ -11,7 +11,6 @@ a few run modes(top level states)
 
 '''
 
-from colorsys import hsv_to_rgb
 import time
 from sense_emu import SenseHat
 from OmeGPS.OmeGPS import OmeGPS
@@ -110,7 +109,7 @@ def gps_status_check(hat_obj, gps_obj):
         _sat_count_div2 = int(_gps_status.get('num_sats'))//2
         _gps_qual = _gps_status.get('gps_qual')
         _mode_fix_type = _gps_status.get('mode_fix_type')
-        if not _gps_status.get('gps_ready'):
+        if not gps_obj.GPS_ready:
             # no GPS,entire block red
             glo_gps_clr = [color_red]*len(glo_gps_loc)
             glo_gps_interval = 0.2
@@ -205,7 +204,7 @@ _tmp_time = datetime.datetime.utcnow().strftime(
 logfile = os.path.expanduser(f'~/workspace/logs/{_tmp_time}_pglog.csv')
 # print(logfile)
 m = open(logfile, 'w')
-f = csv.DictWriter(m,fieldnames=list(track_state.keys()))
+f = csv.DictWriter(m, fieldnames=list(track_state.keys()))
 f.writeheader()
 
 
@@ -266,7 +265,7 @@ while True:
         indicator_timer = 0
 
     if time.clock_gettime(time.CLOCK_MONOTONIC_RAW) - log_timer >= 0.05:
-        _current_elap_seg_time, _current_elap_lap_time = timer.elapsed_seg_time()
+        _current_elap_lap_time, _current_elap_seg_time = timer.elapsed_seg_time()
         _glo_time = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
         _xel = sense._imu.getIMUData()['accel']
         track_state.update({'global_time': _glo_time, 'lap': lap, 'segment': seg_index,

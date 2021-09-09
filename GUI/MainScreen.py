@@ -31,10 +31,6 @@ class Ui_MainWindow(object):
         self.gridLayout.addItem(self.horizontalSpacer, 0, 1, 1, 1)
 
         self.LapRecordList = QListWidget(self.centralwidget)
-        brush = QBrush(QColor(0, 255, 0, 80))
-        brush.setStyle(Qt.SolidPattern)
-        __qlistwidgetitem = QListWidgetItem(self.LapRecordList)
-        __qlistwidgetitem.setBackground(brush);
         self.LapRecordList.setObjectName(u"LapRecordList")
         self.LapRecordList.setEnabled(True)
         self.LapRecordList.setMinimumSize(QSize(300, 0))
@@ -73,6 +69,7 @@ class Ui_MainWindow(object):
         font2 = QFont()
         font2.setPointSize(16)
         self.GPSStatusBtn.setFont(font2)
+        self.GPSStatusBtn.setFocusPolicy(Qt.NoFocus)
         self.GPSStatusBtn.setStyleSheet(u"alternate-background-color: rgb(114, 159, 207);")
         self.GPSStatusBtn.setAutoDefault(True)
 
@@ -82,6 +79,7 @@ class Ui_MainWindow(object):
         self.CANStatusBtn.setObjectName(u"CANStatusBtn")
         self.CANStatusBtn.setMinimumSize(QSize(125, 50))
         self.CANStatusBtn.setFont(font2)
+        self.CANStatusBtn.setFocusPolicy(Qt.NoFocus)
         self.CANStatusBtn.setStyleSheet(u"alternate-background-color: rgb(114, 159, 207);")
         self.CANStatusBtn.setAutoDefault(True)
 
@@ -117,6 +115,7 @@ class Ui_MainWindow(object):
         self.LoggerStatusBtn.setEnabled(True)
         self.LoggerStatusBtn.setMinimumSize(QSize(125, 50))
         self.LoggerStatusBtn.setFont(font2)
+        self.LoggerStatusBtn.setFocusPolicy(Qt.NoFocus)
         self.LoggerStatusBtn.setStyleSheet(u"alternate-background-color: rgb(114, 159, 207);")
         self.LoggerStatusBtn.setAutoDefault(True)
 
@@ -152,13 +151,6 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"OmeTracker", None))
-
-        __sortingEnabled = self.LapRecordList.isSortingEnabled()
-        self.LapRecordList.setSortingEnabled(False)
-        ___qlistwidgetitem = self.LapRecordList.item(0)
-        ___qlistwidgetitem.setText(QCoreApplication.translate("MainWindow", u"0:04:10.123", None));
-        self.LapRecordList.setSortingEnabled(__sortingEnabled)
-
         self.StartTimerBtn.setText(QCoreApplication.translate("MainWindow", u"Start", None))
         self.GPSStatusBtn.setText(QCoreApplication.translate("MainWindow", u"GPS", None))
         self.CANStatusBtn.setText(QCoreApplication.translate("MainWindow", u"CAN", None))

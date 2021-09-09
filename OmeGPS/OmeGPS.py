@@ -46,18 +46,18 @@ class OmeGPS:
         self.serial_port = serial_port
         self.baudrate = baudrate
 
-        self.GPS_status = {'GPStimestamp': datetime.time(0, 0, 0), 'gps_ready': False, 'latitude': 0.0, 'longitude': 0.0,
+        self.GPS_status = {'GPStimestamp': datetime.time(0, 0, 0),'latitude': 0.0, 'longitude': 0.0,
                            'altitude': 0.0, 'gps_qual': 0.0, 'mode_fix_type': 0, 'num_sats': 0, 'true_track': 0.0, 'groundspeed': 0.0}
         self.run_name = ''
 
         # logging related
         # create a default log file/path
         self.GPS_connected = False
-
+        self.GPS_ready = False
         self.logger = ''
         self.allow_logging = False
         self.new_GGA = False
-        self.set_new_log()
+        #self.set_new_log()
         self.MGA = UBXMGA()
 
         # configure GPS
@@ -139,7 +139,7 @@ class OmeGPS:
         while True:
             _incoming = ''
             _incoming = self.ser.readline()
-            self.GPS_status.update({'gps_ready': _incoming != ''})
+            self.GPS_ready = _incoming != ''
             try:
                 _decoded = _incoming.decode('ascii', errors='strict').strip()
                 self.classify_messages(_decoded)
@@ -282,11 +282,11 @@ class UBXMGA:
 class GPSReplay():
 
     def __init__(self, file):
-        self.GPS_status = {'GPStimestamp': datetime.time(0, 0, 0), 'gps_ready': False, 'latitude': 0.0, 'longitude': 0.0,
+        self.GPS_status = {'GPStimestamp': datetime.time(0, 0, 0), 'latitude': 0.0, 'longitude': 0.0,
                            'altitude': 0.0, 'gps_qual': 0.0, 'mode_fix_type': 0, 'num_sats': 0, 'true_track': 0.0, 'groundspeed': 0.0}
         self.ser = open(file, 'r')
         self.newGGA = False
-
+        self.GPS_ready = False
         self.gpsThread = Thread(target=self.read_incoming, daemon=True)
         self.gpsThread.start()
         PRINTDEBUG('GPS Replay initialized', True)
@@ -331,8 +331,7 @@ class GPSReplay():
                     if datetime.datetime.utcnow() - _basenowtime >= (_timestamp - _basetimestamp):
                         break
                     time.sleep(0.001)
-
-                self.GPS_status.update({'gps_ready': _incoming != ''})
+                self.GPS_ready = _incoming != ''
                 try:
                     # .decode('ascii', errors='strict').strip()
                     _decoded = _incoming

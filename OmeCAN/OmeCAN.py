@@ -23,7 +23,7 @@ class OmeCAN:
         self.dbc_path = dbc_path
         self.canport = canport
         self.log_file = ''
-
+        self.CAN_ready = False
         self.CAN_parse = False
         self.CAN_log = False
         self.CAN_connected = False
@@ -45,6 +45,8 @@ class OmeCAN:
         self.CAN_thread = threading.Thread(target=self.CAN_receiver, daemon=True)
         self.stop_thread = threading.Event()
         self.CAN_thread.start()
+
+        
         
     def CAN_parser(self,_msg):
         if self.CAN_parse:
@@ -57,20 +59,22 @@ class OmeCAN:
         self.log_file = f'{self.log_folder}/{_tmp_time}_{runName}_CAN.asc'
         self.logger = can.Logger(self.log_file)
 
-    def start_new_log(self):
+    def start_CAN_log(self):
         self.CAN_log = True
 
-    def stop_new_log(self):
+    def stop_CAN_logging(self):
         self.CAN_log = False
     
         
     def CAN_receiver(self):
         #only allow to try receiving CAN when there is one connected
         while self.CAN_connected:
+            _msg = ''
             try:
                 _msg = self.CAN_bus.recv(1)
             except Exception as e:
                 print(e)
+            self.CAN_ready = (_msg != '')
             if self.CAN_parse:
                 self.CAN_parser(_msg)
             if self.CAN_log:
