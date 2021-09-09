@@ -1,14 +1,15 @@
 import os
 import time
 import datetime
-from OmeTimer.OmeTimer import OmeTimer
+from .OmeCAN import OmeCAN
+from .OmeTimer import OmeTimer
+from .OmeGPS import OmeGPS
+
 from sense_emu import SenseHat
-from OmeGPS.OmeGPS import OmeGPS
-from OmeCAN.OmeCAN import OmeCAN
-import yaml
 import csv
 import numpy as np
 import threading
+
 
 
 __location__ = os.path.realpath(

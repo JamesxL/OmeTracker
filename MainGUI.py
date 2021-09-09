@@ -3,7 +3,7 @@ from PySide2.QtGui import *  # type: ignore
 from PySide2.QtWidgets import *  # type: ignore
 import sys
 import os
-from OmeTracker import OmeTracker
+from Drivers.OmeTracker import OmeTracker
 
 
 import numpy as np

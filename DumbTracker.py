@@ -13,12 +13,11 @@ a few run modes(top level states)
 
 import time
 from sense_emu import SenseHat
-from OmeGPS.OmeGPS import OmeGPS
-from OmeTimer.OmeTimer import OmeTimer
+from Drivers.OmeGPS import OmeGPS
+from Drivers.OmeTimer import OmeTimer
 import time
 from threading import Thread
 import numpy as np
-import json
 import datetime
 import os
 import csv

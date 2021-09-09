@@ -34,15 +34,14 @@ To-do 2021/8/18
 '''
 
 
-from OmeGPS.gps_drv import GPSReplay
+from Drivers.OmeGPS import OmeGPS
 import time
-import serial
-import os
+
 
 #change this for your own port
-logfile = os.path.expanduser(f'~/workspace/logs/Ome1/2021-08-27_03-15-54-301_default_GPS.log')
+serial_port = '/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0'
 
-gps = GPSReplay(logfile)
+gps = OmeGPS(serial_port)
 #gps.start_GPS_logging()
 while True:
     print(gps.gps_status)

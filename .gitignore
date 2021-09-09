@@ -7,3 +7,6 @@
 OmeGPS/ubxToken.yml
 # Local History for Visual Studio Code
 .history/
+*.pyc
+*.pyo
+__pycache__/
