@@ -43,7 +43,7 @@ import os
 logfile = os.path.expanduser(f'~/workspace/logs/Ome1/2021-08-27_03-15-54-301_default_GPS.log')
 
 gps = GPSReplay(logfile)
-#gps.StartGpsLogging()
+#gps.start_GPS_logging()
 while True:
     print(gps.gps_status)
     time.sleep(1)

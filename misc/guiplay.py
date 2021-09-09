@@ -5,11 +5,14 @@ from PySide6.QtGui import QFont
 from PySide6.QtCore import QTimer, QTime, Qt
 import time, datetime
 from threading import Thread
+from random import seed
+from random import randint
   
 class Window(QWidget):
   
     def __init__(self):
         super().__init__()
+        seed(1)
   
         # setting geometry of main window
         self.setGeometry(100, 100, 800, 400)
@@ -37,13 +40,18 @@ class Window(QWidget):
   
         # creating a timer object
         timer = QTimer(self)
+        timer2 = QTimer(self)
   
         # adding action to timer
         timer.timeout.connect(self.showTime)
+        timer2.timeout.connect(self.setcolor)
   
         # update the timer every second
         timer.start(10)
+        timer2.start(1000)
         self.startime = time.time()
+        #self.xyz = timer2.time()
+
         
   
     # method called by timer
@@ -58,6 +66,13 @@ class Window(QWidget):
   
         # showing it to the label
         self.label.setText(label_time)
+
+    def setcolor(self):
+        a = randint(50, 120)
+        font = QFont('Arial', a, QFont.Bold)
+        self.label.setFont(font)
+
+
 
   
   

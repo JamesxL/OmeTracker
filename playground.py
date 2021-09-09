@@ -14,7 +14,7 @@ a few run modes(top level states)
 from colorsys import hsv_to_rgb
 import time
 from sense_emu import SenseHat
-from OmeGPS.gps_drv import ome_gps
+from OmeGPS.OmeGPS import OmeGPS
 from OmeTimer.OmeTimer import OmeTimer
 import time
 from threading import Thread
@@ -27,7 +27,7 @@ import csv
 # change this for your own port
 serial_port = '/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0'
 
-gps = ome_gps(serial_port)
+gps = OmeGPS(serial_port)
 sense = SenseHat()
 sense.set_imu_config(True, True, True)
 sense.set_rotation(90)
@@ -182,7 +182,7 @@ IMUThread = Thread(target=prim_imu, daemon=True)
 GpsPlotThread.start()
 GpsStateThread.start()
 IMUThread.start()
-gps.StartGpsLogging()
+gps.start_GPS_logging()
 
 
 # 2 main run modes: accel and lap
@@ -215,10 +215,10 @@ lap = 0
 
 record_keeper = []
 isclosedcircuit = False
-timer.StartTimer()
+timer.start_timer()
 while True:
-    if gps.GetNewGGA:
-        gps.GetNewGGA = False
+    if gps.has_new_GGA:
+        gps.has_new_GGA = False
         track_state.update(gps.gps_status)
         _car_loc = [track_state.get('latitude'), track_state.get('longitude')]
         if TrapALine(next_wp[0], next_wp[1], _car_loc):
@@ -226,8 +226,8 @@ while True:
             _glo_time = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
             if seg_index in [0, len(wp)]:
                 # next wp is start point
-                timer.NewSegment(_new_lap=True)
-                _current_elap_lap_time, _current_elap_seg_time = timer.GetAllTimes()
+                timer.new_segment(_new_lap=True)
+                _current_elap_lap_time, _current_elap_seg_time = timer.get_all_times()
                 track_state.update({'global_time': _glo_time, 'lap': lap, 'segment': seg_index,
                                     'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time})
                 lap += 1
@@ -235,8 +235,8 @@ while True:
                 #print(f'cross start{track_state}')
 
             else:
-                timer.NewSegment()
-                _current_elap_lap_time, _current_elap_seg_time = timer.GetAllTimes()
+                timer.new_segment()
+                _current_elap_lap_time, _current_elap_seg_time = timer.get_all_times()
                 track_state.update({'global_time': _glo_time, 'lap': lap, 'segment': seg_index,
                                     'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time})
                 seg_index += 1
@@ -266,7 +266,7 @@ while True:
         indicator_timer = 0
 
     if time.clock_gettime(time.CLOCK_MONOTONIC_RAW) - log_timer >= 0.05:
-        _current_elap_seg_time, _current_elap_lap_time = timer.ElapsedSegTime()
+        _current_elap_seg_time, _current_elap_lap_time = timer.elapsed_seg_time()
         _glo_time = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
         _xel = sense._imu.getIMUData()['accel']
         track_state.update({'global_time': _glo_time, 'lap': lap, 'segment': seg_index,
