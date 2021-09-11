@@ -55,9 +55,9 @@ class OmeTracker:
 
     def __init__(self) -> None:
 
+        self.O_SenseHat = SenseHat()
         self.O_GPS = OmeGPS(GPS_SERIAL_PORT)
         self.O_Timer = OmeTimer()
-        self.O_SenseHat = SenseHat()
         self.O_CAN = OmeCAN(canport=CANPORT)
         self.track_db = TRACKDB
 
@@ -77,9 +77,10 @@ class OmeTracker:
         )  # need to init this for logging
 
         # lapping mode related
-        self.wp = ''
-        self.start_finish_line = ''
-        self.next_wp = ''
+        self.is_wp_set = False
+        self.wp = [[[0,1],[0,1]]]
+        self.start_finish_line = [[0,1],[0,1]]
+        self.next_wp = [[0,1],[0,1]]
         self.segment_index = 0
         self.lap_count = 0
         self.isclosedcircuit = False
@@ -212,43 +213,44 @@ class OmeTracker:
     def lapping_mode(self):
         # the lap mode checks if car crosses finish line by constantly monitoring GPS status. it needs to be called in a while loop at certain interval
         # when driving .lapping mode runs indefinitely so it will trip properly
-        if self.O_GPS.has_new_GGA:
-            self.O_GPS.has_new_GGA = False
-            self.tracker_status.update(self.O_GPS.gps_status)
-            _car_coord = self.tracker_status[self.tracker_status['latitude'],
-                                             self.tracker_status['longitude']]
-            if self.trap_a_line(self.next_wp, _car_coord):
-                _glo_time = GLOTIME()
-                if self.segment_index in [0, len(self.wp)]:
-                    self.O_Timer.new_segment(_new_lap=True)
-                    _current_elap_lap_time, _current_elap_seg_time, _, _ = self.O_Timer.get_all_times()
-                    self.tracker_status.update({'global_time': _glo_time, 'lap': self.lap_count, 'segment': self.segment_index,
-                                                'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time})
-                    self.lap_count += 1
-                    self.segment_index = 1
-                else:
-                    self.O_Timer.new_segment()
-                    _current_elap_lap_time, _current_elap_seg_time, _, _ = self.O_Timer.get_all_times()
-                    self.tracker_status.update({'global_time': _glo_time, 'lap': self.lap_count, 'segment': self.segment_index,
-                                                'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time})
-                    self.segment_index += 1
-
-                if self.segment_index >= len(self.wp):
-                    if self.isclosedcircuit:
-                        self.next_wp = self.wp[0]
+        if self.is_wp_set:
+            if self.O_GPS.has_new_GGA:
+                self.O_GPS.has_new_GGA = False
+                self.tracker_status.update(self.O_GPS.gps_status)
+                _car_coord = [self.tracker_status['latitude'],self.tracker_status['longitude']]
+                PRINTDEBUG(f'next wp {self.next_wp}, car_coord {_car_coord}')
+                if self.trap_a_line(self.next_wp, _car_coord):
+                    _glo_time = GLOTIME()
+                    if self.segment_index in [0, len(self.wp)]:
+                        self.O_Timer.new_segment(_new_lap=True)
+                        _current_elap_lap_time, _current_elap_seg_time, _, _ = self.O_Timer.get_all_times()
+                        self.tracker_status.update({'global_time': _glo_time, 'lap': self.lap_count, 'segment': self.segment_index,
+                                                    'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time})
+                        self.lap_count += 1
+                        self.segment_index = 1
                     else:
-                        self.segment_index = 0
-                        self.next_wp = self.wp[self.segment_index]
-            else:
-                self.next_wp = self.wp[self.segment_index]
+                        self.O_Timer.new_segment()
+                        _current_elap_lap_time, _current_elap_seg_time, _, _ = self.O_Timer.get_all_times()
+                        self.tracker_status.update({'global_time': _glo_time, 'lap': self.lap_count, 'segment': self.segment_index,
+                                                    'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time})
+                        self.segment_index += 1
 
-            _xel = self.O_SenseHat._imu.getIMUData()['accel']
-            self.tracker_status.update(
-                {'accel_x': -_xel[0], 'accel_y': -_xel[1], 'accel_z': _xel[2]})
-            if self.allow_logging:
-                self.logger.writerow(self.tracker_status)
-                self.log_file.flush
-                self.last_log_update_time = GLOTIME()
+                    if self.segment_index >= len(self.wp):
+                        if self.isclosedcircuit:
+                            self.next_wp = self.wp[0]
+                        else:
+                            self.segment_index = 0
+                            self.next_wp = self.wp[self.segment_index]
+                else:
+                    self.next_wp = self.wp[self.segment_index]
+
+                _xel = self.O_SenseHat._imu.getIMUData()['accel']
+                self.tracker_status.update(
+                    {'accel_x': -_xel[0], 'accel_y': -_xel[1], 'accel_z': _xel[2]})
+                if self.allow_logging:
+                    self.logger.writerow(self.tracker_status)
+                    self.log_file.flush
+                    self.last_log_update_time = GLOTIME()
 
 
     def drag_mode(self):

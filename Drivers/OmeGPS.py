@@ -7,17 +7,42 @@ import datetime
 import os
 import yaml
 
+from pyubx2 import UBXReader
+
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 debug = False
 
+USEBINARY = True
+
+
 UBX_DISABLEGLL = bytearray(
     [0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xF0, 0x01, 0x00, 0xFB, 0x11])
 
 UBX_DISABLERMC = bytearray(
     [0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xF0, 0x04, 0x00, 0xFE, 0x17])
+
+UBX_ENABLEGGA = bytearray(
+    [0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xF0, 0x00, 0x01, 0xFB, 0x10])
+
+UBX_DISABLEGGA = bytearray(
+    [0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xF0, 0x00, 0x00, 0xFA, 0x0F])
+
+UBX_DISABLEVTG = bytearray(
+    [0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xF0, 0x05, 0x00, 0xFF, 0x19])
+
+UBX_DISABLEGSA = bytearray(
+    [0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xF0, 0x02, 0x00, 0xFC, 0x13])
+
+UBX_DISABLEGSV = bytearray(
+    [0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0xF0, 0x03, 0x00, 0xFD, 0x15])
+
+UBX_ENABLEPVT = bytearray(
+    [0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0x01, 0x07, 0x01, 0x13, 0x51])
+
+
 UBX_SET10HZ = bytearray([0xB5, 0x62, 0x06, 0x08, 0x06, 0x00,
                          0x64, 0x00, 0x01, 0x00, 0x01, 0x00, 0x7A, 0x12])
 UBX_SERIALBAUD = bytearray([0xB5, 0x62, 0x06, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0xD0, 0x08,
@@ -46,7 +71,7 @@ class OmeGPS:
         self.serial_port = serial_port
         self.baudrate = baudrate
 
-        self.GPS_status = {'GPStimestamp': datetime.time(0, 0, 0),'latitude': 0.0, 'longitude': 0.0,
+        self.GPS_status = {'GPStimestamp': datetime.time(0, 0, 0), 'latitude': 0.0, 'longitude': 0.0,
                            'altitude': 0.0, 'gps_qual': 0.0, 'mode_fix_type': 0, 'num_sats': 0, 'true_track': 0.0, 'groundspeed': 0.0}
         self.run_name = ''
 
@@ -57,8 +82,9 @@ class OmeGPS:
         self.logger = ''
         self.allow_logging = False
         self.new_GGA = False
-        #self.set_new_log()
+        # self.set_new_log()
         self.MGA = UBXMGA()
+        
 
         # configure GPS
 
@@ -81,20 +107,20 @@ class OmeGPS:
         self.ser.baudrate = 115200
         time.sleep(0.1)
         PRINTDEBUG('connected at 115200')
+        _config_list = []
+        if USEBINARY:
+            _config_list = [UBX_DISABLEGGA, UBX_DISABLEGLL, UBX_DISABLERMC, UBX_DISABLEVTG, UBX_DISABLEGSV, UBX_DISABLEGSA, UBX_ENABLEPVT]
+            self.ubx_bin =  UBXReader(self.ser)
+
+        else:
+            _config_list= [UBX_ENABLEGGA, UBX_DISABLEGLL, UBX_DISABLERMC]
+        _config_list.extend([UBX_SET10HZ, UBX_SAVECONFIG])
+        for _msgs in _config_list:
+            self.ser.write(_msgs)
+            time.sleep(0.05)
+
         self.MGA.update_all(self.ser)
-        PRINTDEBUG('disableGLL')
-        self.ser.write(UBX_DISABLEGLL)
-        time.sleep(0.05)
-        PRINTDEBUG('disableRMC')
-        self.ser.write(UBX_DISABLERMC)
-        time.sleep(0.05)
-        PRINTDEBUG('set10hz')
-        self.ser.write(UBX_SET10HZ)
-        time.sleep(0.05)
-        PRINTDEBUG('saveconfig')
-        self.ser.write(UBX_SAVECONFIG)
-        time.sleep(0.05)
-        # self.ser.reset_input_buffer()
+
         # threading
         self.gpsThread = Thread(target=self.read_incoming, daemon=True)
         self.gpsThread.start()
@@ -138,11 +164,16 @@ class OmeGPS:
     def read_incoming(self):
         while True:
             _incoming = ''
-            _incoming = self.ser.readline()
-            self.GPS_ready = _incoming != ''
             try:
-                _decoded = _incoming.decode('ascii', errors='strict').strip()
-                self.classify_messages(_decoded)
+                if USEBINARY:
+                    _decoded, _parsed = self.ubx_bin.read()
+                    self.classify_ubx_messages(_parsed) 
+                else:
+                    _incoming = self.ser.readline()
+                    _decoded = _incoming.decode(
+                        'ascii', errors='strict').strip()
+                    self.classify_nmea_messages(_decoded)
+                self.GPS_ready = (_decoded != '')
                 if self.allow_logging:
                     _tmp_time = datetime.datetime.utcnow().strftime(
                         '%Y-%m-%d %H:%M:%S.%f')[:-3]
@@ -150,9 +181,21 @@ class OmeGPS:
 
             except Exception as e:
                 PRINTDEBUG(
-                    f'read incoming err {e} with {_incoming}', True)
+                    f'read incoming err {e} with {_decoded}', True)
+            
+    def classify_ubx_messages(self, _incoming):
+        _msg = _incoming #this is to keep format clean
+        if _incoming.identity == 'NAV-PVT':
+            #_timestamp = datetime.datetime(year=_msg.year, month= _msg.month, day = _msg.day, hour = _msg.hour, minute= _msg.min, second = _msg.second, microsecond = _msg.nano/100, tzinfo = UTC)
+            _fix_qual_flags = int.from_bytes(_msg.flags, "little",signed=False)
+            _fix_qual = max([(_fix_qual_flags & 1), (_fix_qual_flags &2)])
+            self.GPS_status.update({'GPStimestamp': _msg.iTOW, 'latitude': _msg.lat/1e7,
+                                    'longitude': _msg.lon/1e7, 'altitude': _msg.hMSL/1000, 'gps_qual': _fix_qual, 'num_sats': _msg.numSV, 'true_track': _msg.headVeh, 'groundspeed': _msg.gSpeed/1000, 'mode_fix_type': _msg.fixType} )
+            PRINTDEBUG(repr(_incoming))
+            self.new_GGA = True
+        
 
-    def classify_messages(self, _incoming):
+    def classify_nmea_messages(self, _incoming):
         _msg = pynmea2.parse(_incoming)
         if 'GNGGA' in _incoming:
             self.GPS_status.update({'GPStimestamp': _msg.timestamp, 'latitude': _msg.latitude,
@@ -239,7 +282,6 @@ class UBXMGA:
         while _drainer:
             _drainer = ser.inWaiting()
             ser.read(_drainer)
-            time.sleep(0.001)
         ser.write(self.get_valid_MGA_data())
 
     def get_new_MGA(self):

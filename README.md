@@ -29,8 +29,17 @@ change python2 to python3
 
 # Raspberry Pi Setups
 1. Setup CAN interface sudo /sbin/ip link set can0 up type can bitrate 500000 (change 500000 to busrate of your vehicle if different)
+2. qt5ct has some conflict wit pyside. do apt purge qt5ct to get rid of it for proper color scheming. 
+
+something about setting up autostart
+mkdir /home/pi/.config/lxsession
+mkdir /home/pi/.config/lxsession/LXDE-pi
+cp /etc/xdg/lxsession/LXDE-pi/autostart /home/pi/.config/lxsession/LXDE-pi/
+nano /home/pi/.config/lxsession/LXDE-pi/autostart
+@lxterminal -e python3 /path/my_script.py
 
 
 
 # Thought dump
 1. try 18hz GPS instead of 10hz GPS+GLO if it achieves same accuracy
+2. move to UBX_binary mode, it will be fixed byte and 1 single UBX-NAV-PVT message will have all needed info

@@ -180,6 +180,7 @@ IMUThread = Thread(target=prim_imu, daemon=True)
 GpsPlotThread.start()
 GpsStateThread.start()
 IMUThread.start()
+gps.set_new_log()
 gps.start_GPS_logging()
 
 
@@ -195,6 +196,7 @@ car_loc = []
 track_state = dict(
     global_time=None, lap=None, segment=None, lap_time=None, segment_time=None, GPStimestamp=None, gps_ready=None, latitude=None, longitude=None, altitude=None, gps_qual=None, mode_fix_type=None, num_sats=None, true_track=None, groundspeed=None, accel_x=None, accel_y=None, accel_z=None
 )
+
 track_state.update(gps.gps_status)
 indicator_timer = 0
 log_timer = 0

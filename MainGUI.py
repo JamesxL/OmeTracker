@@ -80,13 +80,13 @@ class MainWindow(QMainWindow, MainGUI):
         _lap_time,_,_,_last_lap_time = self.Tracker.O_Timer.get_all_times()
         if _lap_time != 0:
             _formatted_time1 = str(datetime.timedelta(
-                seconds=_lap_time))[:-3]
+                seconds=_lap_time))[:-4]
         else:
             _formatted_time1 = '0:00:00.000'
         self.LapTimeLbl.setText(_formatted_time1)
         if self.Tracker.O_Timer.is_new_lap:
             _formatted_time2 = str(datetime.timedelta(
-                seconds=_last_lap_time))[:-3]
+                seconds=_last_lap_time))[:-4]
             self.LapRecordList.insertItem(0, _formatted_time2)
 
 
@@ -107,18 +107,20 @@ class MainWindow(QMainWindow, MainGUI):
         if not _status['GPS_connected']:
             self.UpdateGPSBtn(u"background-color: rgb(100, 0, 0);", "NO GPS")
         else:
+            _txt = 'GPS'
             if not _status['GPS_ready']:
+                _txt = 'GGA'
                 self.UpdateGPSBtn(
-                    u"background-color: rgb(180, 0, 0);", "NO GGA")
+                    u"background-color: rgb(180, 0, 0);", _txt)
             else:
                 if (_status['GPS_mode'] == 0) | (_status['GPS_fix_quality'] == 0):
+                    _txt = 'NO FIX'
                     self.UpdateGPSBtn(
-                        u"background-color: rgb(255, 255, 0);", "NO FIX")
+                        u"background-color: rgb(255, 255, 0);", _txt)
                 else:
-                    GPS_fix_modes = {2: '2D', 3: '3D'}
-                    GPS_fix_qual = {1: '', 2: 'DGPS'}
-                    _txt = GPS_fix_modes.get(_status['GPS_mode']) + GPS_fix_qual.get(
-                        _status['GPS_fix_quality'])+f":{_status['GPS_sat_count']}"
+                    GPS_fix_modes = {'2': '2D', '3': '3D'}
+                    GPS_fix_qual = {'1': '', '2': 'DGPS'}
+                    _txt = GPS_fix_modes.get(str(_status['GPS_mode'])) + GPS_fix_qual.get(str(_status['GPS_fix_quality']))+f":{_status['GPS_sat_count']}"
                     self.UpdateGPSBtn(
                         u"background-color: rgb(0, 255, 0);", _txt)
 
@@ -132,9 +134,9 @@ class MainWindow(QMainWindow, MainGUI):
                 self.UpdateGPSBtn(
                     u"background-color: rgb(0, 255, 0);", "CAN OK")
         if (_status['Tracker_logging']):
-            self.UpdateLogBtn(u"background-color: rgb(0, 255, 0);")
+            self.UpdateLogBtn(u"background-color: rgb(0, 255, 0);", "Logging")
         else:
-            self.UpdateLogBtn()
+            self.UpdateLogBtn(text="NLOG")
 
     def OpenConfig(self):
         self.ConfigWindow.show()
