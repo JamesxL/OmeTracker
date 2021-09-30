@@ -181,7 +181,7 @@ class OmeGPS:
 
             except Exception as e:
                 PRINTDEBUG(
-                    f'read incoming err {e} with {_decoded}', True)
+                    f'read incoming err {e} with ', True)
             
     def classify_ubx_messages(self, _incoming):
         _msg = _incoming #this is to keep format clean
@@ -204,7 +204,7 @@ class OmeGPS:
             self.new_GGA = True
         elif 'VTG' in _incoming:
             self.GPS_status.update(
-                {'true_track': _msg.true_track, 'groundspeed': _msg.spd_over_grnd_kmph})
+                {'true_track': _msg.true_track, 'groundspeed': _msg.spd_over_grnd_kmph*0.277778})
             PRINTDEBUG(repr(_msg))
         elif 'GSA' in _incoming:
             self.GPS_status.update({'mode_fix_type': _msg.mode_fix_type, })
@@ -326,9 +326,12 @@ class GPSReplay():
     def __init__(self, file):
         self.GPS_status = {'GPStimestamp': datetime.time(0, 0, 0), 'latitude': 0.0, 'longitude': 0.0,
                            'altitude': 0.0, 'gps_qual': 0.0, 'mode_fix_type': 0, 'num_sats': 0, 'true_track': 0.0, 'groundspeed': 0.0}
+
+        self.GPS_connected = True
         self.ser = open(file, 'r')
         self.newGGA = False
         self.GPS_ready = False
+        self.allow_logging =True
         self.gpsThread = Thread(target=self.read_incoming, daemon=True)
         self.gpsThread.start()
         PRINTDEBUG('GPS Replay initialized', True)
@@ -351,28 +354,32 @@ class GPSReplay():
 
     def stop_GPS_logging(self):
         pass
+    
+    def set_new_log(self,a):
+        pass
 
     def read_incoming(self):
         # this is to replay log file
         _count = 0
         _baselogtimestamp = ''
         _basenowtime = datetime.datetime.utcnow()
+        print('here')
         while True:
             _incoming = ''
             try:
                 _anewline = self.ser.readline()
                 _content = _anewline.split(': ')
 
-                _timestamp = datetime.datetime.strptime(
-                    _content[0], '%Y-%m-%d_%H-%M-%S-%f')
+                #_timestamp = datetime.datetime.strptime(
+                #    _content[0], '%Y-%m-%d %H-%M-%S.%f')
                 _incoming = _content[1]
-                if _count == 0:
-                    _basetimestamp = _timestamp
+                #if _count == 0:
+                #    _basetimestamp = _timestamp
 
-                while True:
-                    if datetime.datetime.utcnow() - _basenowtime >= (_timestamp - _basetimestamp):
-                        break
-                    time.sleep(0.001)
+                #while True:
+                #    if datetime.datetime.utcnow() - _basenowtime >= (_timestamp - _basetimestamp):
+                #        break
+                #    time.sleep(0.001)
                 self.GPS_ready = _incoming != ''
                 try:
                     # .decode('ascii', errors='strict').strip()
@@ -386,6 +393,8 @@ class GPSReplay():
             except Exception as e:
                 print(e)
                 break
+            time.sleep(0.001)
+            
 
     def classify_messages(self, _incoming):
         try:
@@ -397,7 +406,7 @@ class GPSReplay():
                 self.newGGA = True
             elif 'VTG' in _incoming:
                 self.GPS_status.update(
-                    {'true_track': _msg.true_track, 'groundspeed': _msg.spd_over_grnd_kmph})
+                    {'true_track': _msg.true_track, 'groundspeed': _msg.spd_over_grnd_kmph*0.277778})
                 PRINTDEBUG(repr(_msg))
             elif 'GSA' in _incoming:
                 self.GPS_status.update({'mode_fix_type': _msg.mode_fix_type, })

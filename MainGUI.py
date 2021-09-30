@@ -88,6 +88,7 @@ class MainWindow(QMainWindow, MainGUI):
             _formatted_time2 = str(datetime.timedelta(
                 seconds=_last_lap_time))[:-4]
             self.LapRecordList.insertItem(0, _formatted_time2)
+            self.Tracker.O_Timer.is_new_lap_data = False
 
 
     def UpdateGPSBtn(self, style=(255, 255, 255), text='GPS'):
@@ -119,10 +120,16 @@ class MainWindow(QMainWindow, MainGUI):
                         u"background-color: rgb(255, 255, 0);", _txt)
                 else:
                     GPS_fix_modes = {'2': '2D', '3': '3D'}
-                    GPS_fix_qual = {'1': '', '2': 'DGPS'}
+                    GPS_fix_qual = {'1': '', '2': 'D'}
                     _txt = GPS_fix_modes.get(str(_status['GPS_mode'])) + GPS_fix_qual.get(str(_status['GPS_fix_quality']))+f":{_status['GPS_sat_count']}"
                     self.UpdateGPSBtn(
                         u"background-color: rgb(0, 255, 0);", _txt)
+            _spd = _status['groundspeed']
+            if _spd is not None:
+                _spd = "{:.1f}".format(_spd*2.23693629)
+                self.GPSspeed.setText(_spd)
+            else:
+                self.GPSspeed.setText('0.0')
 
         if not _status['CAN_connected']:
             self.UpdateCANBtn(u"background-color: rgb(100, 0, 0);", "NO CAN")

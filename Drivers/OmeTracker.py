@@ -3,7 +3,7 @@ import time
 import datetime
 from .OmeCAN import OmeCAN
 from .OmeTimer import OmeTimer
-from .OmeGPS import OmeGPS
+from .OmeGPS import OmeGPS, GPSReplay
 
 from sense_emu import SenseHat
 import csv
@@ -17,8 +17,9 @@ __location__ = os.path.realpath(
 
 DEFAULT_LOG_PATH = os.path.expanduser(f'~/workspace/logs')
 
+replay_file = '/home/james/workspace/logs/Ome1/2021-09-04_16-30-22-188_default_GPS.log'
 
-debug = False
+debug = True
 
 
 def PRINTDEBUG(text, override=False):
@@ -31,7 +32,9 @@ def GLOTIME():
 
 
 # hardcoding all the configs here for now
-GPS_SERIAL_PORT = '/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0'
+#GPS_SERIAL_PORT = '/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0'
+#GPS_SERIAL_PORT = '/dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_365C335E3539-if00'
+GPS_SERIAL_PORT = '/dev/ttyACM0'
 CANPORT = 'can0'
 TRACKDB = f'{__location__}/config/TrackDB.csv'
 
@@ -57,6 +60,7 @@ class OmeTracker:
 
         self.O_SenseHat = SenseHat()
         self.O_GPS = OmeGPS(GPS_SERIAL_PORT)
+        #self.O_GPS = GPSReplay(replay_file)
         self.O_Timer = OmeTimer()
         self.O_CAN = OmeCAN(canport=CANPORT)
         self.track_db = TRACKDB
@@ -77,13 +81,15 @@ class OmeTracker:
         )  # need to init this for logging
 
         # lapping mode related
-        self.is_wp_set = False
-        self.wp = [[[0,1],[0,1]]]
-        self.start_finish_line = [[0,1],[0,1]]
-        self.next_wp = [[0,1],[0,1]]
+        self.is_wp_set = True
+        self.wp = [[[39.538479135735535, -122.33108483437748],[39.5384749987112, -122.33129136447995]]]
+        #self.wp = [[[37.386551, -121.976507], [37.385315, -121.977011]], [[37.391480, -121.996019], [37.390993, -121.996053]], [[37.395856281151175, -122.01278184373095], [37.39557472782622, -122.01284438417055]], [[37.399191243521486, -122.0277364354773], [37.398766491778865, -122.02783723303757]], [[37.40784592640769, -122.0662768452659], [37.40749509288447, -122.06643479362538]], [[37.421219133570546, -122.09238105202712], [37.42081028170965, -122.09258279891876]], [[37.44711013467561, -122.12067538620087], [37.446821132971266, -122.12120173984503]], [[37.469178298696264, -122.1551627962261], [37.46874101933634, -122.15532021040003]], [[37.483537350142505, -122.18055454055384], [37.48322820661036, -122.18088150965406]], [[37.49228548293154, -122.22053122641603], [37.49196543121171, -122.22080670122045]], [[37.496489006227065, -122.23302884687149], [37.49621380681995, -122.23317391434453]], [[37.51415285182584, -122.25601270180371], [37.513823668212154, -122.25627433514738]], [[37.526430908306715, -122.26995379736208], [37.52616713677875, -122.27034003544544]], [[37.544776640040304, -122.28772475047946], [37.54444487991503, -122.28825046342624]]]
+        ##[[[0,1],[0,1]]]
+        self.start_finish_line = self.wp[0] #[[0,1],[0,1]]
+        self.next_wp = self.wp[0] #[[0,1],[0,1]]
         self.segment_index = 0
         self.lap_count = 0
-        self.isclosedcircuit = False
+        self.isclosedcircuit = True
 
         # imu related
         self.imu_ready = False
@@ -161,7 +167,8 @@ class OmeTracker:
                 GPS_fix_quality=self.O_GPS.GPS_status['gps_qual'],
                 CAN_connected=self.O_CAN.CAN_connected,
                 CAN_ready=self.O_CAN.CAN_ready,
-                Tracker_logging=self.allow_logging
+                Tracker_logging=self.allow_logging, 
+                groundspeed = self.O_GPS.GPS_status['groundspeed']
             )
             self.status_5hz.update(_status)
             time.sleep(0.2)
@@ -218,8 +225,9 @@ class OmeTracker:
                 self.O_GPS.has_new_GGA = False
                 self.tracker_status.update(self.O_GPS.gps_status)
                 _car_coord = [self.tracker_status['latitude'],self.tracker_status['longitude']]
-                PRINTDEBUG(f'next wp {self.next_wp}, car_coord {_car_coord}')
+                #PRINTDEBUG(f'next wp {self.next_wp}, car_coord {_car_coord}')
                 if self.trap_a_line(self.next_wp, _car_coord):
+                    PRINTDEBUG(f'trapped')
                     _glo_time = GLOTIME()
                     if self.segment_index in [0, len(self.wp)]:
                         self.O_Timer.new_segment(_new_lap=True)
@@ -241,8 +249,8 @@ class OmeTracker:
                         else:
                             self.segment_index = 0
                             self.next_wp = self.wp[self.segment_index]
-                else:
-                    self.next_wp = self.wp[self.segment_index]
+                #else:
+                #    self.next_wp = self.wp[self.segment_index]
 
                 _xel = self.O_SenseHat._imu.getIMUData()['accel']
                 self.tracker_status.update(

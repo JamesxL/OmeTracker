@@ -75,7 +75,7 @@ class OmeTimer:
         if _new_lap:
             self.last_lap_time = self.current_elap_lap_time
             self.lap_start_time = _time_now
-            self.is_new_lap(True)
+            self.is_new_lap_data = True
         # no return. the main will call seg time or lap time accordingly to grab them
 
     #@property
