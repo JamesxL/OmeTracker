@@ -393,7 +393,7 @@ class GPSReplay():
             except Exception as e:
                 print(e)
                 break
-            time.sleep(0.001)
+            time.sleep(0.01)
             
 
     def classify_messages(self, _incoming):

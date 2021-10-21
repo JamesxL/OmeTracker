@@ -44,7 +44,7 @@ class MainWindow(QMainWindow, MainGUI):
 
         self.RunMode = 'circuit'
         self.ModeRunner = QTimer(self)
-        self.ModeRunner.setInterval(10)
+        self.ModeRunner.setInterval(5)
         self.ConfigureRunMode()
 
         self.Tracker.start_sys_logging()
