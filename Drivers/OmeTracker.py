@@ -5,7 +5,7 @@ from .OmeCAN import OmeCAN
 from .OmeTimer import OmeTimer
 from .OmeGPS import OmeGPS, GPSReplay
 
-from sense_emu import SenseHat
+#from sense_emu import SenseHat
 import csv
 import numpy as np
 import threading
@@ -58,7 +58,7 @@ class OmeTracker:
 
     def __init__(self) -> None:
 
-        self.O_SenseHat = SenseHat()
+        #self.O_SenseHat = SenseHat()
         self.O_GPS = OmeGPS(GPS_SERIAL_PORT)
         #self.O_GPS = GPSReplay(replay_file)
         self.O_Timer = OmeTimer()
@@ -66,9 +66,9 @@ class OmeTracker:
         self.track_db = TRACKDB
 
         # setup sensor hat
-        self.O_SenseHat.set_imu_config(True, True, True)
-        self.O_SenseHat.get_accelerometer_raw()
-        self.O_SenseHat.set_rotation(90)
+        #self.O_SenseHat.set_imu_config(True, True, True)
+        #self.O_SenseHat.get_accelerometer_raw()
+        #self.O_SenseHat.set_rotation(90)
 
         # variables for finish line trap
         self.finish_line_coords = None  # both coords here
@@ -93,9 +93,8 @@ class OmeTracker:
 
         # imu related
         self.imu_ready = False
-        self.imu_updater = threading.Thread(
-            target=self.imu_handling, daemon=True)
-        self.imu_updater.start()
+        #self.imu_updater = threading.Thread(target=self.imu_handling, daemon=True)
+        #self.imu_updater.start()
 
         # logger related stuffs
         self.last_log_update_time = 0
@@ -177,15 +176,17 @@ class OmeTracker:
         return self.status_5hz
 
     def imu_handling(self):
+        pass
         # run this in thread
-        _last_imu_update_time = 0
-        while True:
-            if GLOTIME() - _last_imu_update_time > 0.03:
-                while not self.O_SenseHat._imu.IMURead():
-                    time.sleep(0.005)
-                _last_imu_update_time = GLOTIME()
-                self.imu_ready = True
-            time.sleep(0.005)
+        #
+        #_last_imu_update_time = 0
+        #while True:
+        #    if GLOTIME() - _last_imu_update_time > 0.03:
+        #        while not self.O_SenseHat._imu.IMURead():
+        #            time.sleep(0.005)
+        #        _last_imu_update_time = GLOTIME()
+        #        self.imu_ready = True
+        #    time.sleep(0.005)
 
     def load_waypoints(self, waypoints, start_fin_point):
         self.start_finish_line = start_fin_point
@@ -252,9 +253,9 @@ class OmeTracker:
                 #else:
                 #    self.next_wp = self.wp[self.segment_index]
 
-                _xel = self.O_SenseHat._imu.getIMUData()['accel']
+                #_xel = self.O_SenseHat._imu.getIMUData()['accel']
                 self.tracker_status.update(
-                    {'accel_x': -_xel[0], 'accel_y': -_xel[1], 'accel_z': _xel[2]})
+                    {'accel_x': 0, 'accel_y': 0, 'accel_z': 0})
                 if self.allow_logging:
                     self.logger.writerow(self.tracker_status)
                     self.log_file.flush
@@ -269,10 +270,10 @@ class OmeTracker:
         while True:
             _glo_time = GLOTIME()
             _current_elap_lap_time, _current_elap_seg_time, _, _ = self.O_Timer.get_all_times()
-            _xel = self.O_SenseHat._imu.getIMUData()['accel']
+            #_xel = self.O_SenseHat._imu.getIMUData()['accel']
             self.tracker_status.update(self.O_GPS.gps_status)
             self.tracker_status.update({'global_time': _glo_time, 'lap': self.lap_count, 'segment': self.segment_index,
-                                        'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time, 'accel_x': -_xel[0], 'accel_y': -_xel[1], 'accel_z': _xel[2]})
+                                        'lap_time': _current_elap_lap_time, 'segment_time': _current_elap_seg_time, 'accel_x': 0, 'accel_y': 0, 'accel_z': 0})
 
             if (_glo_time - self.last_log_update_time > 0.05) & self.allow_logging:
                 self.last_log_update_time = _glo_time
