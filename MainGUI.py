@@ -14,24 +14,27 @@ import csv
 
 from GUI.MainScreen import Ui_MainWindow as MainGUI
 from GUI.ConfigPop import Ui_ConfigPop as ConfigGUI
-
+from GUI.GMeter import Ui_Gmeter as GMeterGUI
 
 class MainWindow(QMainWindow, MainGUI):
 
     def __init__(self) -> None:
         super().__init__()
         self.setupUi(self)
+        self.ccc = 0
 
         self.system = os.uname().nodename
         self.Tracker = OmeTracker()
 
         # set up subwindows/popups
         self.ConfigWindow = ConfigWindow()
+        self.GMeterWindow = GMeterWindow()
 
         # set up bottons
         self.StartTimerBtn.clicked.connect(self.StartTiming)
         self.StopTimerBtn.clicked.connect(self.StopTiming)
-        self.ConfigBtn.clicked.connect(self.OpenConfig)
+        #self.ConfigBtn.clicked.connect(self.OpenConfig)
+        self.ConfigBtn.clicked.connect(self.OpenGMeter)
 
         self.ClockUpdater = QTimer(self)
         self.ClockUpdater.timeout.connect(self.UpdateClock)
@@ -104,6 +107,8 @@ class MainWindow(QMainWindow, MainGUI):
         self.LoggerStatusBtn.setText(text)
 
     def UpdateSensor(self):
+        self.GMeterWindow.LonG.display(self.ccc)
+        self.GMeterWindow.LatG.display(self.ccc)
         _status = self.Tracker.get_sensor_status()
         if not _status['GPS_connected']:
             self.UpdateGPSBtn(u"background-color: rgb(100, 0, 0);", "NO GPS")
@@ -148,6 +153,9 @@ class MainWindow(QMainWindow, MainGUI):
     def OpenConfig(self):
         self.ConfigWindow.show()
 
+    def OpenGMeter(self):
+        self.GMeterWindow.show()
+
     def ExitProg(self):
         self.Tracker.stop_sys_logging()
         app.exit()
@@ -160,6 +168,21 @@ class ConfigWindow(QMainWindow, ConfigGUI):
         self.setupUi(self)
 
         self.ExitBtn.clicked.connect(self.ExitProg)
+        self.ReturnBtn.clicked.connect(self.CloseDialog)
+
+    def CloseDialog(self):
+        self.close()
+
+    def ExitProg(self):
+        app.exit()
+
+
+class GMeterWindow(QMainWindow, GMeterGUI):
+
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+
         self.ReturnBtn.clicked.connect(self.CloseDialog)
 
     def CloseDialog(self):
