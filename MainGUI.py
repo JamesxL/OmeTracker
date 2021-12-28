@@ -107,9 +107,9 @@ class MainWindow(QMainWindow, MainGUI):
         self.LoggerStatusBtn.setText(text)
 
     def UpdateSensor(self):
-        self.GMeterWindow.LonG.display(self.ccc)
-        self.GMeterWindow.LatG.display(self.ccc)
         _status = self.Tracker.get_sensor_status()
+        self.GMeterWindow.LonG.display(self.Tracker.get_accel_lon())
+        self.GMeterWindow.LatG.display(self.Tracker.get_accel_lat())
         if not _status['GPS_connected']:
             self.UpdateGPSBtn(u"background-color: rgb(100, 0, 0);", "NO GPS")
         else:
