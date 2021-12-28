@@ -4,9 +4,9 @@ import yaml
 filename = 'SysConfig.yml'
 
 SysConfig = dict(
-    SuperSensor_enable=True,
+    SuperSensor_enable=False,
     SuperSensor_path='/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0',
-    GPS_enable=False,
+    GPS_enable=True,
     GPS_path='/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0',
     IMU_enable=False,
     IMU_addr=''

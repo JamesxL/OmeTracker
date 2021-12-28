@@ -36,7 +36,7 @@ def GLOTIME():
 #GPS_SERIAL_PORT = '/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0'
 #GPS_SERIAL_PORT = '/dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_365C335E3539-if00'
 #GPS_SERIAL_PORT = '/dev/ttyACM0'
-GPS_SERIAL_PORT = '/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0'
+#GPS_SERIAL_PORT = '/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0'
 CANPORT = 'can0'
 TRACKDB = f'{os.getcwd()}/config/TrackDB.csv'
 SYSCONFIG = f'{os.getcwd()}/config/SysConfig.yml'
@@ -73,10 +73,11 @@ class OmeTracker:
         except Exception as e:
             PRINTDEBUG(f'somethingwrong: {e}', True)
 
-        self.ss_on = True
+        self.ss_on = False
 
         if self.tracker_config['SuperSensor_enable']:
             self.O_SS = OmeSS(self.tracker_config['SuperSensor_path'])
+            self.ss_on = True
         else:
             if self.tracker_config['GPS_enable']:
                 self.O_GPS = OmeGPS(self.tracker_config['GPS_path'])
@@ -224,15 +225,16 @@ class OmeTracker:
             _timestamp = f"{_sss['year']}-{_sss['month']}-{_sss['day']}_{_sss['hour']}:{_sss['min']}:{_sss['sec']}.{str(_sss['iToW'])[-3:]}"
             _sensors = dict(GPStimestamp=_timestamp, latitude=_sss['lat'], longitude=_sss['lon'], altitude=_sss['hMSL'], gps_qual=_sss['fixstatus'], mode_fix_type=_sss['fixType'],
                             num_sats=_sss['satcnt'], true_track=_sss['headMot'], groundspeed=_sss['gSpeed'], accel_lat=_sss['accel_lat'], accel_lon=_sss['accel_lon'], accel_gvt=_sss['accel_gvt'])
-            PRINTDEBUG(_sensors)
-            _GPS_connected = self.O_SS.GPS_connected,
-            _GPS_ready = self.O_SS.GPS_ready,
+            
+            _GPS_connected = self.O_SS.GPS_connected
+            _GPS_ready = self.O_SS.GPS_ready
             _GPS_logging = True
         else:
             _sensors = self.O_GPS.gps_status
-            _GPS_connected = self.O_GPS.GPS_connected,
-            _GPS_ready = self.O_GPS.GPS_ready,
-            _GPS_logging = self.O_GPS.allow_logging,
+            _GPS_connected = self.O_GPS.GPS_connected
+            _GPS_ready = self.O_GPS.GPS_ready
+            _GPS_logging = self.O_GPS.allow_logging
+        PRINTDEBUG(_sensors)
 
         self.tracker_status.update(_sensors)
         _status = dict(
@@ -254,10 +256,10 @@ class OmeTracker:
         _ret = False
         if self.ss_on:
             _ret = self.O_SS.has_new_GGA
-            self.O_SS.has_new_GGA = False
+            #self.O_SS.has_new_GGA = False
         else:
             _ret = self.O_GPS.has_new_GGA
-            self.O_GPS.has_new_GGA = False
+            #self.O_GPS.has_new_GGA = False
         return _ret
 
     def lapping_mode(self):
@@ -265,7 +267,7 @@ class OmeTracker:
         # when driving .lapping mode runs indefinitely so it will trip properly
         if self.is_wp_set:
             _newGGA = self.check_new_GGA()
-
+            #PRINTDEBUG(_newGGA,True)
             if _newGGA:
                 _newGGA = False
                 self.sensor_status_updater()

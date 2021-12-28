@@ -69,6 +69,7 @@ class OmeGPS:
 
         self.log_folder = log_folder
         self.serial_port = serial_port
+        #PRINTDEBUG(serial_port)
         self.baudrate = baudrate
 
         self.GPS_status = {'GPStimestamp': datetime.time(0, 0, 0), 'latitude': 0.0, 'longitude': 0.0,

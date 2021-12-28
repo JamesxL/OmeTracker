@@ -85,12 +85,16 @@ class OmeSS(object):
     def read_incoming(self):
         while True:
             _incoming = ''
-            _incoming = self.ser.readline().strip().decode('ascii')
-            # PRINTDEBUG(repr(_incoming))
-            if _incoming != '':
-                self.new_GGA = True
-                self.classify_OSS_msg(_incoming)
-            else:
+            try:
+                _incoming = self.ser.readline().strip().decode('ascii')
+                # PRINTDEBUG(repr(_incoming))
+                if _incoming != '':
+                    self.GPS_ready = True
+                    self.classify_OSS_msg(_incoming)
+                else:
+                    self.new_GGA = False
+            except Exception as e:
+                PRINTDEBUG(f'{e}', True)
                 self.new_GGA = False
 
     def classify_OSS_msg(self, _incoming):
@@ -98,7 +102,7 @@ class OmeSS(object):
             _msg = _incoming.split(",")
             self.SS_status = {'timestamp': int(_msg[0]), 'year': int(_msg[1]), 'month': int(_msg[2]), 'day': int(_msg[3]), 'hour': int(_msg[4]), 'min': int(_msg[5]), 'sec': int(_msg[6]),
                               'iToW': int(_msg[7]), 'lon': int(_msg[8])/1e7, 'lat': int(_msg[9])/1e7, 'hMSL': int(_msg[10])/1000, 'gSpeed': int(_msg[11])/1000, 'headMot': int(_msg[12]), 'satcnt': int(_msg[13]), 'fixType': int(_msg[14]), 'fixstatus': int(_msg[15]), 'accel_lon': float(_msg[16]), 'accel_lat': float(_msg[17]), 'accel_gvt': float(_msg[18]), 'imu_temp': float(_msg[19]), 'baro_pres': float(_msg[20]), 'baro_temp': float(_msg[21])}
-
+            self.new_GGA = True
         except Exception as e:
             PRINTDEBUG(f'{e}', True)
             self.new_GGA = False
