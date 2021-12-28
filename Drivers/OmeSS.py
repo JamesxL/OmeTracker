@@ -23,7 +23,7 @@ SuperSensor concept is an all-in-one remote module that has GPS-IMU and logging 
 
 def PRINTDEBUG(text, override=False):
     if debug | override:
-        print(text)
+        print(f'OmeSS: {text}')
 
 
 class OmeSS(object):
