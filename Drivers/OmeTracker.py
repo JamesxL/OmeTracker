@@ -15,6 +15,8 @@ import threading
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
+__parentfolder__ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 DEFAULT_LOG_PATH = os.path.expanduser(f'~/workspace/logs')
 
@@ -39,7 +41,7 @@ def GLOTIME():
 #GPS_SERIAL_PORT = '/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0'
 CANPORT = 'can0'
 TRACKDB = f'{os.getcwd()}/config/TrackDB.csv'
-SYSCONFIG = f'{os.getcwd()}/config/SysConfig.yml'
+SYSCONFIG = f'{__parentfolder__}/config/SysConfig.yml'
 
 color_red = (0xff, 0x00, 0x00)
 color_amber = (0xff, 0xBF, 0x00)
