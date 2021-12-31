@@ -1,6 +1,6 @@
-GPS_enable: false
-GPS_path: /dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0
+GPS_enable: true
+GPS_path: /dev/serial/by-id/usb-u-blox_AG_-_www.u-blox.com_u-blox_7_-_GPS_GNSS_Receiver-if00
 IMU_addr: ''
 IMU_enable: false
-SuperSensor_enable: true
+SuperSensor_enable: false
 SuperSensor_path: /dev/serial/by-id/usb-FTDI_TTL232R-3V3_FTBI9WHN-if00-port0

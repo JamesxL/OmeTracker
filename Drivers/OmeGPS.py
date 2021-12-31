@@ -189,9 +189,9 @@ class OmeGPS:
         if _incoming.identity == 'NAV-PVT':
             #_timestamp = datetime.datetime(year=_msg.year, month= _msg.month, day = _msg.day, hour = _msg.hour, minute= _msg.min, second = _msg.second, microsecond = _msg.nano/100, tzinfo = UTC)
             _fix_qual_flags = int.from_bytes(_msg.flags, "little",signed=False)
-            _fix_qual = max([(_fix_qual_flags & 1), (_fix_qual_flags &2)])
+            #
             self.GPS_status.update({'GPStimestamp': _msg.iTOW, 'latitude': _msg.lat/1e7,
-                                    'longitude': _msg.lon/1e7, 'altitude': _msg.hMSL/1000, 'gps_qual': _fix_qual, 'num_sats': _msg.numSV, 'true_track': _msg.headVeh, 'groundspeed': _msg.gSpeed/1000, 'mode_fix_type': _msg.fixType} )
+                                    'longitude': _msg.lon/1e7, 'altitude': _msg.hMSL/1000, 'gps_qual': _fix_qual_flags, 'num_sats': _msg.numSV, 'true_track': _msg.headVeh, 'groundspeed': _msg.gSpeed/1000, 'mode_fix_type': _msg.fixType} )
             PRINTDEBUG(repr(_incoming))
             self.new_GGA = True
         

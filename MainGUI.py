@@ -119,14 +119,15 @@ class MainWindow(QMainWindow, MainGUI):
                 self.UpdateGPSBtn(
                     u"background-color: rgb(180, 0, 0);", _txt)
             else:
-                if (_status['GPS_mode'] == 0) | (_status['GPS_fix_quality'] == 0):
+                if (_status['GPS_mode'] == 0) | (_status['GPS_fix_quality']&1 == 0):
                     _txt = 'NO FIX'
                     self.UpdateGPSBtn(
                         u"background-color: rgb(255, 255, 0);", _txt)
                 else:
                     GPS_fix_modes = {'2': '2D', '3': '3D'}
-                    GPS_fix_qual = {'1': '', '2': 'D'}
-                    _txt = GPS_fix_modes.get(str(_status['GPS_mode'])) + GPS_fix_qual.get(str(_status['GPS_fix_quality']))+f":{_status['GPS_sat_count']}"
+                    GPS_fix_quals = {'1': '', '2': 'D'}
+                    _fix_qual = max([(_status['GPS_fix_quality'] & 1), (_status['GPS_fix_quality'] &2)])
+                    _txt = GPS_fix_modes.get(str(_status['GPS_mode'])) + GPS_fix_quals.get(str(_fix_qual))+f":{_status['GPS_sat_count']}"
                     self.UpdateGPSBtn(
                         u"background-color: rgb(0, 255, 0);", _txt)
             _spd = _status['groundspeed']
@@ -188,8 +189,7 @@ class GMeterWindow(QMainWindow, GMeterGUI):
     def CloseDialog(self):
         self.close()
 
-    def ExitProg(self):
-        app.exit()
+
 
 
 app = QApplication(sys.argv)
