@@ -94,7 +94,7 @@ class OmeTracker:
         self.finish_line_last_state = 0
 
         self.tracker_status = dict(
-            global_time=None, run_mode='circuit', lap=None, segment=None, lap_time=None, segment_time=None, GPStimestamp=None, latitude=None, longitude=None, altitude=None, gps_qual=None, mode_fix_type=None, num_sats=None, true_track=None, groundspeed=None, accel_lat=None, accel_lon=None, accel_gvt=None
+            global_time=None, run_mode='circuit', lap=0, segment=0, lap_time=0, segment_time=0, GPStimestamp=0, latitude=0, longitude=0, altitude=0, gps_qual=0, mode_fix_type=0, num_sats=0, true_track=0, groundspeed=0, accel_lat=0, accel_lon=0, accel_gvt=0
         )  # need to init this for logging
 
         # lapping mode related
@@ -111,7 +111,7 @@ class OmeTracker:
         # imu related
         self.imu_ready = False
         #self.imu_updater = threading.Thread(target=self.imu_handling, daemon=True)
-        #self.imu_updater.start()
+        # self.imu_updater.start()
 
         # logger related stuffs
         self.last_log_update_time = 0
@@ -225,7 +225,7 @@ class OmeTracker:
             _timestamp = f"{_sss['year']}-{_sss['month']}-{_sss['day']}_{_sss['hour']}:{_sss['min']}:{_sss['sec']}.{str(_sss['iToW'])[-3:]}"
             _sensors = dict(GPStimestamp=_timestamp, latitude=_sss['lat'], longitude=_sss['lon'], altitude=_sss['hMSL'], gps_qual=_sss['fixstatus'], mode_fix_type=_sss['fixType'],
                             num_sats=_sss['satcnt'], true_track=_sss['headMot'], groundspeed=_sss['gSpeed'], accel_lat=_sss['accel_lat'], accel_lon=_sss['accel_lon'], accel_gvt=_sss['accel_gvt'])
-            
+
             _GPS_connected = self.O_SS.GPS_connected
             _GPS_ready = self.O_SS.GPS_ready
             _GPS_logging = True
@@ -267,7 +267,7 @@ class OmeTracker:
         # when driving .lapping mode runs indefinitely so it will trip properly
         if self.is_wp_set:
             _newGGA = self.check_new_GGA()
-            #PRINTDEBUG(_newGGA,True)
+            # PRINTDEBUG(_newGGA,True)
             if _newGGA:
                 _newGGA = False
                 self.sensor_status_updater()
