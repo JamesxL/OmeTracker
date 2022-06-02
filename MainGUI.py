@@ -102,10 +102,10 @@ class MainWindow(QMainWindow, MainGUI):
 
         self.StartTiming()
 
-        if self.system == 'raspberrypi':
-            self.showFullScreen()
-        else:
-            self.show()
+        #if self.system == 'raspberrypi':
+        #    self.showFullScreen()
+        #else:
+        #    self.show()
 
         # self.StartTiming()
 
@@ -242,8 +242,14 @@ class GMeterWindow(QMainWindow, GMeterGUI):
     def CloseDialog(self):
         self.close()
 
+if __name__ == "__main__":
 
-app = QApplication(sys.argv)
-mainWin = MainWindow()
+    system = os.uname().nodename
+    app = QApplication(sys.argv)
+    mainWin = MainWindow()
+    if system == 'raspberrypi':
+        mainWin.showFullScreen()
+    else:
+        mainWin.show()
 
-app.exit(app.exec_())
+    app.exit(app.exec_())
