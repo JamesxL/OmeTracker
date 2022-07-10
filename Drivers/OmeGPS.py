@@ -221,7 +221,7 @@ class UBXMGA:
                          'https://online-live2.services.u-blox.com/GetOnlineData.ashx?token=']
     URL_OFFLINE_SERVER = ['https://offline-live1.services.u-blox.com/GetOfflineData.ashx?token=',
                           'https://offline-live2.services.u-blox.com/GetOfflineData.ashx?token=']
-    ARGS_OFLINE = ';gnss=gps,glo;alm=gps,glo;period=5;resolution=1'
+    ARGS_OFFLINE = ';gnss=gps,glo;alm=gps,glo;period=5;resolution=1'
     ARGS_ONLINE = ';gnss=gps,glo,qzss,bds,gal;datatype=eph,alm,aux,pos'
 
     TOKEN_FILE_NAME = 'ubxToken.yml'
@@ -301,7 +301,7 @@ class UBXMGA:
         for _alink in self.URL_OFFLINE_SERVER:
             try:
                 _req = _alink + \
-                    self.MGA_tokens['TokenOffline'] + self.ARGS_OFLINE
+                    self.MGA_tokens['TokenOffline'] + self.ARGS_OFFLINE
                 self.MGA_data['OfflineMGAData'] = requests.get(
                     _req, stream=True).content
                 self.MGA_data['OfflineMGADate'] = _tmp_time
